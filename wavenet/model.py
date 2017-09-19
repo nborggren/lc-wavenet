@@ -220,9 +220,9 @@ class WaveNetModel(object):
 						if self.lc_channels is not None:
 							current['lc_gateweights'] = create_variable(
 								'lc_gate',
-								[1,
-								 self.lc_channels,
-								 self.dilation_channels])
+								 [1,
+								  self.lc_channels,
+								  self.dilation_channels])
 							current['lc_filtweights'] = create_variable(
 								'lc_filter', 
 								[1,
@@ -335,17 +335,18 @@ class WaveNetModel(object):
 		# y(t), convolved with lc_filter, will change at every step.
 		if lc_batch is not None:
 			weights_lc_filter = variables['lc_filtweights']
-			conv_filter = conv_filter + tf.nn.conv1d(lc_batch,
-													 weights_lc_filter,
-													 stride = 1,
-													 padding="SAME",
-													 name="lc_filter")
+			conv_filter = conv_filter #+ tf.nn.conv1d(lc_batch,
+												#	 weights_lc_filter,
+												#	 stride = 1,
+												#	 padding="SAME",
+												#	 name="lc_filter")
 			weights_lc_gate = variables['lc_gateweights']
-			conv_gate = conv_gate + tf.nn.conv1d(lc_batch,
-												 weights_lc_gate,
-												 stride = 1,
-												 padding="SAME",
-												 name="lc_gate")
+			conv_gate = conv_gate #+ tf.nn.conv1d(lc_batch,
+												# weights_lc_gate,
+												# stride = 1,
+												# padding="SAME",
+												# name="lc_gate"
+			print(tf.shape(lc_batch))
 
 		if self.use_biases:
 			filter_bias = variables['filter_bias']

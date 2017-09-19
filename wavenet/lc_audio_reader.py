@@ -247,7 +247,7 @@ class LCAudioReader():
 				audio = np.pad(audio, [[self.receptive_field, 0], [0, 0]], 'constant')
 
 				# CHOP UP AUDIO
-				if self.sample_size:
+				if self.sample_size: # never calls set midi!!! Fixed 3pm 9/18
 					# ADAPT:
 					# setup parametrs for MidiMapper
 					previous_end = 0
@@ -265,7 +265,10 @@ class LCAudioReader():
 						if self.lc_enabled:
 							# TODO: sanity check the following four lines
 							mapper.set_sample_range(start_sample = previous_end, end_sample = new_end)
+							mapper.set_midi(lc_timeseries)
+							print(lc_timeseries)
 							lc_encode = mapper.upsample(start_sample = previous_end, end_sample = new_end)
+							print("LC encode is {}".format(lc_encode))
 							self.sess.run(self.enq_lc, feed_dict = {self.lc_placeholder : lc_encode})
 							# after queueing, shift audio frame to the next one
 							previous_end = new_end
@@ -324,6 +327,7 @@ class MidiMapper():
 		self.tempo = None
 		self.resolution = None
 		self.first_note_index = None
+		self.midi = None
 
 		# tensorflow Q init
 		self.mapper_lc_q = tf.FIFOQueue(capacity = self.q_size, dtypes = [tf.float32], name = "lc_embeddings_q")
@@ -529,5 +533,6 @@ class MidiMapper():
 		samples = self.mapper_lc_q.dequeue_many(self.mapper_lc_q.size())
 
 		# pack all individual embeddings along the 0th dimention into one tensor
-		lc_batch = tf.pack(samples)
+		lc_batch = tf.stack(samples) # TF 1.2 renames pack to stack
+		print("LC batch shape is {}".format(tf.shape(lc_batch)))
 		return lc_batch
