@@ -247,11 +247,13 @@ class LCAudioReader():
 				audio = np.pad(audio, [[self.receptive_field, 0], [0, 0]], 'constant')
 
 				# CHOP UP AUDIO
-				if self.sample_size: # never calls set midi!!! Fixed 3pm 9/18
-					# ADAPT:
-					# setup parametrs for MidiMapper
-					previous_end = 0
-					new_end = self.receptive_field
+				if self.sample_size:
+					if lc_enabled:
+						# ADAPT:
+						# setup parametrs for MidiMapper
+						previous_end = 0
+						new_end = self.receptive_field
+						mapper.set_midi(lc_timeseries)
 					# TODO: understand the reason for this piece voodoo from the original reader
 					while len(audio) > self.receptive_field:
 						piece = audio[:(self.receptive_field + self.sample_size), :]
@@ -276,9 +278,6 @@ class LCAudioReader():
 
 				# DONT CHOP UP AUDIO
 				else:
-					if __debug__:
-						print("Going to else")
-
 					# otherwise feed the whole audio sample in its entireity
 					self.sess.run(self.enq_audio, feed_dict = {self.audio_placeholder : audio})
 
