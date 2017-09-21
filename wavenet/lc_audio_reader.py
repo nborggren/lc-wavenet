@@ -248,7 +248,7 @@ class LCAudioReader():
 
 				# CHOP UP AUDIO
 				if self.sample_size:
-					if lc_enabled:
+					if self.lc_enabled:
 						# ADAPT:
 						# setup parametrs for MidiMapper
 						previous_end = 0
