@@ -178,6 +178,15 @@ class WaveNetModel(object):
                      initial_channels,
                      self.residual_channels])
                 var['causal_layer'] = layer
+                
+                layer_lc = dict()
+
+                layer_lc['filter_lc'] = create_variable(
+                    'filter_lc',
+                    [initial_filter_width,
+                     self.lc_channels,
+                     self.residual_channels])
+                var['causal_layer_lc'] = layer_lc
 
             var['dilated_stack'] = list()
             with tf.variable_scope('dilated_stack'):
@@ -270,6 +279,14 @@ class WaveNetModel(object):
         with tf.name_scope('causal_layer'):
             weights_filter = self.variables['causal_layer']['filter']
             return causal_conv(input_batch, weights_filter, 1)
+    def _create_causal_layer_lc(self, lc_batch):
+        '''Creates a single causal convolution layer.
+
+        The layer can change the number of channels.
+        '''
+        with tf.name_scope('causal_layer'):
+            weights_filter = self.variables['causal_layer_lc']['filter_lc']
+            return causal_conv(lc_batch, weights_filter, 1)
 
     def _create_dilation_layer(self,
                                input_batch,
@@ -335,17 +352,17 @@ class WaveNetModel(object):
         # y(t), convolved with lc_filter, will change at every step.
         if lc_batch is not None:
             weights_lc_filter = variables['lc_filtweights']
-            conv_filter = conv_filter #+ tf.nn.conv1d(lc_batch,
-                                         #            weights_lc_filter,
-#                                                     stride = 1,
-#                                                     padding="SAME",
-#                                                     name="lc_filter")
+            conv_filter = conv_filter + tf.nn.conv1d(lc_batch,
+                                                     weights_lc_filter,
+                                                     stride = 1,
+                                                     padding="SAME",
+                                                     name="lc_filter")
             weights_lc_gate = variables['lc_gateweights']
-            conv_gate = conv_gate #+ tf.nn.conv1d(lc_batch,
-#                                                 weights_lc_gate,
-#                                                 stride = 1,
-#                                                 padding="SAME",
-#                                                 name="lc_gate")
+            conv_gate = conv_gate + tf.nn.conv1d(lc_batch,
+                                                 weights_lc_gate,
+                                                 stride = 1,
+                                                 padding="SAME",
+                                                 name="lc_gate")
             print(tf.shape(lc_batch))                                     
 
         if self.use_biases:
@@ -488,7 +505,7 @@ class WaveNetModel(object):
             initial_channels = self.quantization_channels
 
         current_layer = self._create_causal_layer(current_layer)
-        lc_batch_casualed = self._create_causal_layer(lc_batch_casualed)  # ALi & Brian
+        lc_batch_casualed = self._create_causal_layer_lc(lc_batch_casualed)  # ALi & Brian
 
         output_width = tf.shape(input_batch)[1] - self.receptive_field + 1
 
@@ -735,17 +752,20 @@ class WaveNetModel(object):
 
             gc_embedding = self._embed_gc(gc_batch)
             encoded = self._one_hot(encoded_input)
+            print('this is ready to use audio batch')
+            print(np.shape(encoded))
+            
             if self.scalar_input:
                 network_input = tf.reshape(
                     tf.cast(input_batch, tf.float32),
                     [self.batch_size, -1, 1])
                 lc_encoded_batch = tf.reshape(
                     tf.cast(lc_encoded_batch, tf.float32),
-                    [self.batch_size, -1, 1])              # TODO: MIDI should be encoded already
+                    [self.batch_size, -1, 128])              # TODO: MIDI should be encoded already
             else:
                 network_input = encoded
-                lc_encoded_batch = mu_law_encode(lc_encoded_batch, self.quantization_channels)  # TODO: MIDI should be encoded already
-                lc_encoded_batch = self._one_hot(lc_encoded_batch)  # TODO: MIDI should be encoded already
+#                lc_encoded_batch = mu_law_encode(lc_encoded_batch, self.quantization_channels)  # TODO: MIDI should be encoded already
+#                lc_encoded_batch = self._one_hot(lc_encoded_batch)  # TODO: MIDI should be encoded already
 
             # Cut off the last sample of network input to preserve causality.
             network_input_width = tf.shape(network_input)[1] - 1

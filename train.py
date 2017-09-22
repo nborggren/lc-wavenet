@@ -314,7 +314,7 @@ def main():
         if lc_enabled:
 #           lc_encoded_batch = reader.dq_lc(args.batch_size) 
             # TODO: Should Uncomment later after the initial issues of reader.dq_lc
-            lc_encoded_batch = tf.zeros(tf.shape(audio_batch))
+            lc_encoded_batch = tf.zeros([1,tf.size(audio_batch),128])
             #print(tf.shape(audio_batch))
             print(np.shape(audio_batch))
             print(np.shape(lc_encoded_batch))
