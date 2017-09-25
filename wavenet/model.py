@@ -177,6 +177,9 @@ class WaveNetModel(object):
                     [initial_filter_width,
                      initial_channels,
                      self.residual_channels])
+                print([initial_filter_width,
+                     initial_channels,
+                     self.residual_channels])
                 var['causal_layer'] = layer
                 
                 layer_lc = dict()
@@ -185,7 +188,7 @@ class WaveNetModel(object):
                     'filter_lc',
                     [initial_filter_width,
                      self.lc_channels,
-                     self.residual_channels])
+                     self.lc_channels])
                 var['causal_layer_lc'] = layer_lc
 
             var['dilated_stack'] = list()
@@ -229,12 +232,12 @@ class WaveNetModel(object):
                         if self.lc_channels is not None:
                             current['lc_gateweights'] = create_variable(
                                 'lc_gate',
-                                 [1,
+                                 [2,
                                   self.lc_channels,
                                   self.dilation_channels])
                             current['lc_filtweights'] = create_variable(
                                 'lc_filter', 
-                                [1,
+                                [2,
                                  self.lc_channels,
                                  self.dilation_channels])
 
@@ -286,6 +289,11 @@ class WaveNetModel(object):
         '''
         with tf.name_scope('causal_layer'):
             weights_filter = self.variables['causal_layer_lc']['filter_lc']
+#            out = tf.nn.conv1d(lc_batch,
+#                                                 weights_filter,
+#                                                 stride = 1,
+#                                                 padding="SAME",
+#                                                 name="lc_gate")
             return causal_conv(lc_batch, weights_filter, 1)
 
     def _create_dilation_layer(self,
@@ -322,6 +330,14 @@ class WaveNetModel(object):
         are omitted due to the limits of ASCII art.
 
         '''
+        
+        # Shortening the lc_batch
+        lc_cut = tf.shape(lc_batch)[1] - tf.shape(input_batch)[1]
+        lc_batch = tf.slice(lc_batch, [0, lc_cut, 0], [-1, -1, -1])
+        # Does't seem right to me
+        
+        
+        
         variables = self.variables['dilated_stack'][layer_index]
 
         weights_filter = variables['filter']
@@ -381,7 +397,10 @@ class WaveNetModel(object):
         weights_dense = variables['dense']
         transformed = tf.nn.conv1d(
             out, weights_dense, stride = 1, padding="SAME", name="dense")
-
+        
+        print(np.shape(out))
+        print(np.shape(transformed))
+        
         # The 1x1 conv to produce the skip output
         skip_cut = tf.shape(out)[1] - output_width
         out_skip = tf.slice(out, [0, skip_cut, 0], [-1, -1, -1])
@@ -501,21 +520,22 @@ class WaveNetModel(object):
         outputs = []
         current_layer = input_batch
         lc_batch_casualed = lc_batch
+#        current_layer = current_layer + lc_batch_casualed
 
-        # Pre-process the input with a regular convolution
-        if self.scalar_input:
-            initial_channels = 1
-        else:
-            initial_channels = self.quantization_channels
 
         current_layer = self._create_causal_layer(current_layer)
         lc_batch_casualed = self._create_causal_layer_lc(lc_batch_casualed)  # ALi & Brian
+        
+        print(np.shape(lc_batch_casualed))
 
         output_width = tf.shape(input_batch)[1] - self.receptive_field + 1
 
         # Add all defined dilation layers.
         with tf.name_scope('dilated_stack'):
             for layer_index, dilation in enumerate(self.dilations):
+                print('dialation and layer_index')
+                print(dilation)
+                print(layer_index)
                 with tf.name_scope('layer{}'.format(layer_index)):
                     output, current_layer = self._create_dilation_layer(
                         current_layer,
@@ -756,8 +776,6 @@ class WaveNetModel(object):
 
             gc_embedding = self._embed_gc(gc_batch)
             encoded = self._one_hot(encoded_input)
-            print('this is ready to use audio batch')
-            print(np.shape(encoded))
             
             if self.scalar_input:
                 network_input = tf.reshape(
@@ -768,13 +786,18 @@ class WaveNetModel(object):
                     [self.batch_size, -1, 128])              # TODO: MIDI should be encoded already
             else:
                 network_input = encoded
-#                lc_encoded_batch = mu_law_encode(lc_encoded_batch, self.quantization_channels)  # TODO: MIDI should be encoded already
-#                lc_encoded_batch = self._one_hot(lc_encoded_batch)  # TODO: MIDI should be encoded already
+            
+            print('this is ready to use audio batch')
+            print(np.shape(encoded))
 
             # Cut off the last sample of network input to preserve causality.
             network_input_width = tf.shape(network_input)[1] - 1
             network_input = tf.slice(network_input, [0, 0, 0],
                                      [-1, network_input_width, -1])
+            
+            lc_batch_width = tf.shape(lc_encoded_batch)[1] - 1
+            lc_encoded_batch = tf.slice(lc_encoded_batch, [0, 0, 0],
+                                     [-1, lc_batch_width, -1])
 
             raw_output = self._create_network(network_input, gc_embedding, lc_encoded_batch)
 
