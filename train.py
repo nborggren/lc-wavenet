@@ -18,7 +18,8 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python.client import timeline
 
-from wavenet import WaveNetModel,LCAudioReader, optimizer_factory
+from wavenet import WaveNetModel, optimizer_factory
+from audio_reader import AudioReader
 
 BATCH_SIZE = 1
 LOGDIR_ROOT = './logdir'
@@ -142,6 +143,10 @@ def get_arguments():
         default = None,
         help = 'Number of global condition channels. Default: None. Expecting: int')
 
+    parser.add_argument('--initial-lc-channels',
+        type = int,
+        default = None,
+        help = "Number of local conditioning channels. Default: None. Expecting: int")
     parser.add_argument('--lc-channels',
         type = int,
         default = None,
@@ -278,6 +283,9 @@ def main():
 
         gc_enabled = args.gc_channels is not None
         lc_enabled = args.lc_channels is not None
+        initial_lc_channels = args.initial_lc_channels if lc_enabled is not None else None
+        lc_channels = args.lc_channels if lc_enabled is not None else None
+        lc_fileformat = args.lc_fileformat if lc_enabled is not None else None
 
         # LC channels are non-zero but no format is specifid
         if lc_enabled and args.lc_fileformat is None:
@@ -286,23 +294,35 @@ def main():
         if args.lc_fileformat is not None and not lc_enabled:
             raise ValueError("LC channels have to be set when a LC file format is specified.")
         
-        reader = LCAudioReader(data_dir = args.data_dir,
-                               coord = coord,
-                               receptive_field = WaveNetModel.calculate_receptive_field(
-                                    wavenet_params["filter_width"],
-                                    wavenet_params["dilations"],
-                                    wavenet_params["scalar_input"],
-                                    wavenet_params["initial_filter_width"]),
-                               gc_enabled = gc_enabled,
-                               lc_enabled = lc_enabled,
-                               lc_channels = args.lc_channels,
-                               lc_fileformat = args.lc_fileformat,
-                               sample_rate = wavenet_params['sample_rate'],
-                               sample_size = args.sample_size,
-                               silence_threshold = silence_threshold,
-                               sess = sess)
+#        reader = LCAudioReader(data_dir = args.data_dir,
+#                               coord = coord,
+#                               receptive_field = WaveNetModel.calculate_receptive_field(
+#                                    wavenet_params["filter_width"],
+#                                    wavenet_params["dilations"],
+#                                    wavenet_params["scalar_input"],
+#                                    wavenet_params["initial_filter_width"]),
+#                               gc_enabled = gc_enabled,
+#                               lc_enabled = lc_enabled,
+#                               lc_channels = lc_channels,
+#                               lc_fileformat = lc_fileformat,
+#                               sample_rate = wavenet_params['sample_rate'],
+#                               sample_size = args.sample_size,
+#                               silence_threshold = silence_threshold,
+#                               sess = sess)
+        
+        reader = AudioReader(
+            args.data_dir,
+            coord,
+            sample_rate=wavenet_params['sample_rate'],
+            gc_enabled=gc_enabled,
+            receptive_field=WaveNetModel.calculate_receptive_field(wavenet_params["filter_width"],
+                                                                   wavenet_params["dilations"],
+                                                                   wavenet_params["scalar_input"],
+                                                                   wavenet_params["initial_filter_width"]),
+            sample_size=args.sample_size,
+            silence_threshold=silence_threshold)
         # dequeue audio samples
-        audio_batch = reader.dq_audio(args.batch_size)
+        audio_batch = reader.dequeue(args.batch_size)
 
         # dequeue gc embeddings
         if gc_enabled:
@@ -312,13 +332,15 @@ def main():
 
         # dequeue lc embeddings
         if lc_enabled:
+#            lc_encoded_batch = np.random.rand(1,100000,8,).astype(np.float32)
+            lc_encoded_batch = tf.placeholder(tf.float32, [1,100000,args.initial_lc_channels])
 #           lc_encoded_batch = reader.dq_lc(args.batch_size) 
             # TODO: Should Uncomment later after the initial issues of reader.dq_lc
-            lc_encoded_batch = tf.zeros([1,tf.size(audio_batch),args.lc_channels])
-            print([1,tf.size(audio_batch),args.lc_channels])
-            #print(tf.shape(audio_batch))
-            print(np.shape(audio_batch))
-            print(np.shape(lc_encoded_batch))
+#            lc_encoded_batch = tf.zeros([1,tf.size(audio_batch),args.lc_channels])
+#            print([1,tf.size(audio_batch),args.lc_channels])
+#            #print(tf.shape(audio_batch))
+#            print(np.shape(audio_batch))
+#            print(np.shape(lc_encoded_batch))
         else:
             lc_encoded_batch = None
 
@@ -336,8 +358,9 @@ def main():
         initial_filter_width = wavenet_params["initial_filter_width"],
         histograms = args.histograms,
         gc_channels = args.gc_channels,
-        gc_cardinality = reader.get_gc_cardinality(),
-        lc_channels = args.lc_channels)
+        gc_cardinality = reader.gc_category_cardinality,
+        initial_lc_channels = initial_lc_channels,
+        lc_channels = lc_channels)
 
     if args.l2_regularization_strength == 0:
         args.l2_regularization_strength = None
@@ -384,8 +407,9 @@ def main():
         raise
 
     # start audio reader threads
-    threads = tf.train.start_queue_runners(sess = sess, coord = coord)
-    reader.start_threads()
+    threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+    reader.start_threads(sess)
+
 
     step = None
     last_saved_step = saved_global_step
@@ -394,15 +418,19 @@ def main():
             print('***************************888*****************')
             print(step)
             start_time = time.time()
+            print(audio_batch)
+            feed = {lc_encoded_batch :np.random.rand(1,100000,args.initial_lc_channels).astype(np.float32)}
             if args.store_metadata and step % 50 == 0:
                 # Slow run that stores extra information for debugging.
                 print('Storing metadata')
                 run_options = tf.RunOptions(
                     trace_level = tf.RunOptions.FULL_TRACE)
+
                 summary, loss_value, _ = sess.run(
                     [summaries, loss, optim],
                     options = run_options,
-                    run_metadata = run_metadata)
+                    run_metadata = run_metadata,
+                    feed_dict = feed)
                 writer.add_summary(summary, step)
                 writer.add_run_metadata(run_metadata,
                                         'step_{:04d}'.format(step))
@@ -411,7 +439,9 @@ def main():
                 with open(timeline_path, 'w') as f:
                     f.write(tl.generate_chrome_trace_format(show_memory = True))
             else:
-                summary, loss_value, _ = sess.run([summaries, loss, optim])
+
+                summary, loss_value, _ = sess.run([summaries, loss, optim],
+                                                  feed_dict = feed)
                 writer.add_summary(summary, step)
 
             duration = time.time() - start_time

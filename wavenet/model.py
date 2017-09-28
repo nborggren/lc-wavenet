@@ -57,6 +57,7 @@ class WaveNetModel(object):
                  histograms = False,
                  gc_channels = None,
                  gc_cardinality = None,
+                 initial_lc_channels = None,
                  lc_channels = None):
         '''Initializes the WaveNet model.
 
@@ -117,6 +118,7 @@ class WaveNetModel(object):
         self.gc_channels = gc_channels
         self.gc_cardinality = gc_cardinality
         # LOCAL CONDITION
+        self.initial_lc_channels = initial_lc_channels
         self.lc_channels = lc_channels
 
         self.receptive_field = WaveNetModel.calculate_receptive_field(self.filter_width,
@@ -182,14 +184,15 @@ class WaveNetModel(object):
                      self.residual_channels])
                 var['causal_layer'] = layer
                 
-                layer_lc = dict()
-
-                layer_lc['filter_lc'] = create_variable(
-                    'filter_lc',
-                    [initial_filter_width,
-                     self.lc_channels,
-                     self.lc_channels])
-                var['causal_layer_lc'] = layer_lc
+                if self.lc_channels is not None:
+                    layer_lc = dict()
+    
+                    layer_lc['filter_lc'] = create_variable(
+                        'filter_lc',
+                        [initial_filter_width,
+                         self.initial_lc_channels,
+                         self.lc_channels])
+                    var['causal_layer_lc'] = layer_lc
 
             var['dilated_stack'] = list()
             with tf.variable_scope('dilated_stack'):
@@ -232,12 +235,12 @@ class WaveNetModel(object):
                         if self.lc_channels is not None:
                             current['lc_gateweights'] = create_variable(
                                 'lc_gate',
-                                 [2,
+                                 [1,
                                   self.lc_channels,
                                   self.dilation_channels])
                             current['lc_filtweights'] = create_variable(
                                 'lc_filter', 
-                                [2,
+                                [1,
                                  self.lc_channels,
                                  self.dilation_channels])
 
@@ -289,11 +292,6 @@ class WaveNetModel(object):
         '''
         with tf.name_scope('causal_layer'):
             weights_filter = self.variables['causal_layer_lc']['filter_lc']
-#            out = tf.nn.conv1d(lc_batch,
-#                                                 weights_filter,
-#                                                 stride = 1,
-#                                                 padding="SAME",
-#                                                 name="lc_gate")
             return causal_conv(lc_batch, weights_filter, 1)
 
     def _create_dilation_layer(self,
@@ -331,13 +329,6 @@ class WaveNetModel(object):
 
         '''
         
-        # Shortening the lc_batch
-        lc_cut = tf.shape(lc_batch)[1] - tf.shape(input_batch)[1]
-        lc_batch = tf.slice(lc_batch, [0, lc_cut, 0], [-1, -1, -1])
-        # Does't seem right to me
-        
-        
-        
         variables = self.variables['dilated_stack'][layer_index]
 
         weights_filter = variables['filter']
@@ -366,24 +357,23 @@ class WaveNetModel(object):
         # the 1x1 conv of LC batch and filter can be element-wise added to the filter.
         # We also need to know how this param must be adjusted to accommodate a time series:
         # y(t), convolved with lc_filter, will change at every step.
+        
         if lc_batch is not None:
             weights_lc_filter = variables['lc_filtweights']
-            conv_filter_lc = causal_conv(lc_batch, weights_lc_filter, dilation)
-            conv_filter = conv_filter + conv_filter_lc
-#            conv_filter = conv_filter + tf.nn.conv1d(lc_batch,
-#                                                     weights_lc_filter,
-#                                                     stride = 1,
-#                                                     padding="SAME",
-#                                                     name="lc_filter")
+            conv_filter_lc = causal_conv(lc_batch, weights_lc_filter, 1)
+                                                     
             weights_lc_gate = variables['lc_gateweights']
-            conv_gate_lc = causal_conv(lc_batch, weights_lc_gate, dilation)
+            conv_gate_lc = causal_conv(lc_batch, weights_lc_gate, 1)
+
+            # This is Cutting the starting of the lc_batch to match the length of the input_batch
+            # Shortening the lc_batch
+            lc_cut = tf.shape(conv_filter_lc)[1] - tf.shape(conv_filter)[1]
+            conv_filter_lc = tf.slice(conv_filter_lc, [0, lc_cut, 0], [-1, -1, -1])
+            conv_gate_lc = tf.slice(conv_gate_lc, [0, lc_cut, 0], [-1, -1, -1])  
+                                                 
             conv_gate = conv_gate + conv_gate_lc
-#            conv_gate = conv_gate + tf.nn.conv1d(lc_batch,
-#                                                 weights_lc_gate,
-#                                                 stride = 1,
-#                                                 padding="SAME",
-#                                                 name="lc_gate")
-            print(tf.shape(lc_batch))                                     
+            conv_filter = conv_filter + conv_filter_lc 
+            
 
         if self.use_biases:
             filter_bias = variables['filter_bias']
@@ -398,8 +388,6 @@ class WaveNetModel(object):
         transformed = tf.nn.conv1d(
             out, weights_dense, stride = 1, padding="SAME", name="dense")
         
-        print(np.shape(out))
-        print(np.shape(transformed))
         
         # The 1x1 conv to produce the skip output
         skip_cut = tf.shape(out)[1] - output_width
@@ -520,13 +508,10 @@ class WaveNetModel(object):
         outputs = []
         current_layer = input_batch
         lc_batch_casualed = lc_batch
-#        current_layer = current_layer + lc_batch_casualed
-
 
         current_layer = self._create_causal_layer(current_layer)
-        lc_batch_casualed = self._create_causal_layer_lc(lc_batch_casualed)  # ALi & Brian
-        
-        print(np.shape(lc_batch_casualed))
+        if lc_batch is not None:
+            lc_batch_casualed = self._create_causal_layer_lc(lc_batch_casualed)  # ALi & Brian
 
         output_width = tf.shape(input_batch)[1] - self.receptive_field + 1
 
@@ -783,21 +768,19 @@ class WaveNetModel(object):
                     [self.batch_size, -1, 1])
                 lc_encoded_batch = tf.reshape(
                     tf.cast(lc_encoded_batch, tf.float32),
-                    [self.batch_size, -1, 128])              # TODO: MIDI should be encoded already
+                    [self.batch_size, -1, 128])
             else:
                 network_input = encoded
-            
-            print('this is ready to use audio batch')
-            print(np.shape(encoded))
 
             # Cut off the last sample of network input to preserve causality.
             network_input_width = tf.shape(network_input)[1] - 1
             network_input = tf.slice(network_input, [0, 0, 0],
                                      [-1, network_input_width, -1])
             
-            lc_batch_width = tf.shape(lc_encoded_batch)[1] - 1
-            lc_encoded_batch = tf.slice(lc_encoded_batch, [0, 0, 0],
-                                     [-1, lc_batch_width, -1])
+            if lc_encoded_batch is not None:
+                lc_batch_width = tf.shape(lc_encoded_batch)[1] - 1
+                lc_encoded_batch = tf.slice(lc_encoded_batch, [0, 0, 0],
+                                            [-1, lc_batch_width, -1])
 
             raw_output = self._create_network(network_input, gc_embedding, lc_encoded_batch)
 
