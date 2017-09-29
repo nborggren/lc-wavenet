@@ -33,12 +33,13 @@ module load python/2.7.13
 module load tensorflow/r1.2
 
 # EXECUTION LINE
-python /projectnb/textconv/WaveNet/Ali/tensorflow-wavenet/train.py \
---data-dir=/projectnb/textconv/WaveNet/Ali/tensorflow-wavenet/wavenet \
---logdir=/projectnb/textconv/WaveNet/Models/LCWavenet/Logs \
---wavenet-params=/projectnb/textconv/WaveNet/Models/LCWavenet/lc_wavenet_params.json \
+python /projectnb/textconv/ali/tensorflow-wavenet/train.py \
+--data-dir=/projectnb/textconv/ali/tensorflow-wavenet/wavenet \
+--logdir=/projectnb/textconv/ali/Logs \
+--wavenet-params=/projectnb/textconv/ali/tensorflow-wavenet/lc_wavenet_params.json \
 --learning-rate=0.001 \
---lc-channels=128 \
+--initial-lc-channels=128 \
+--lc-channels=16 \
 --lc-fileformat=*.mid
 
 
