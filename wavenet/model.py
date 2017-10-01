@@ -814,8 +814,7 @@ class WaveNetModel(object):
                     # Add the regularization term to the loss
                     total_loss = (reduced_loss +
                                   l2_regularization_strength * l2_loss)
-
-                    tf.summary.scalar('l2_loss', l2_loss)
                     tf.summary.scalar('total_loss', total_loss)
-
+                    tf.summary.scalar('l2_loss', l2_loss)
+                    
                     return total_loss

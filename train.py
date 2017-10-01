@@ -18,8 +18,9 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python.client import timeline
 
-from wavenet import WaveNetModel, optimizer_factory
-from audio_reader import AudioReader
+from wavenet import WaveNetModel, optimizer_factory, LCAudioReader
+#from audio_reader import AudioReader
+#from lc_audio_reader import LCAudioReader
 
 BATCH_SIZE = 1
 LOGDIR_ROOT = './logdir'
@@ -294,33 +295,35 @@ def main():
         if args.lc_fileformat is not None and not lc_enabled:
             raise ValueError("LC channels have to be set when a LC file format is specified.")
         
-#        reader = LCAudioReader(data_dir = args.data_dir,
-#                               coord = coord,
-#                               receptive_field = WaveNetModel.calculate_receptive_field(
-#                                    wavenet_params["filter_width"],
-#                                    wavenet_params["dilations"],
-#                                    wavenet_params["scalar_input"],
-#                                    wavenet_params["initial_filter_width"]),
-#                               gc_enabled = gc_enabled,
-#                               lc_enabled = lc_enabled,
-#                               lc_channels = lc_channels,
-#                               lc_fileformat = lc_fileformat,
-#                               sample_rate = wavenet_params['sample_rate'],
-#                               sample_size = args.sample_size,
-#                               silence_threshold = silence_threshold,
-#                               sess = sess)
+        reader = LCAudioReader(data_dir = args.data_dir,
+                              coord = coord,
+                              receptive_field = WaveNetModel.calculate_receptive_field(
+                                   wavenet_params["filter_width"],
+                                   wavenet_params["dilations"],
+                                   wavenet_params["scalar_input"],
+                                   wavenet_params["initial_filter_width"]),
+                              gc_enabled = gc_enabled,
+                              lc_enabled = lc_enabled,
+                              lc_channels = lc_channels,
+                              lc_fileformat = lc_fileformat,
+                              sample_rate = wavenet_params['sample_rate'],
+                              sample_size = args.sample_size,
+                              silence_threshold = silence_threshold,
+                              sess = sess)
         
-        reader = AudioReader(
-            args.data_dir,
-            coord,
-            sample_rate=wavenet_params['sample_rate'],
-            gc_enabled=gc_enabled,
-            receptive_field=WaveNetModel.calculate_receptive_field(wavenet_params["filter_width"],
-                                                                   wavenet_params["dilations"],
-                                                                   wavenet_params["scalar_input"],
-                                                                   wavenet_params["initial_filter_width"]),
-            sample_size=args.sample_size,
-            silence_threshold=silence_threshold)
+        # reader = AudioReader(
+        #     args.data_dir,
+        #     coord,
+        #     sample_rate=wavenet_params['sample_rate'],
+        #     gc_enabled=gc_enabled,
+        #     receptive_field=WaveNetModel.calculate_receptive_field(wavenet_params["filter_width"],
+        #                                                            wavenet_params["dilations"],
+        #                                                            wavenet_params["scalar_input"],
+        #                                                            wavenet_params["initial_filter_width"]),
+        #                                                             sample_size=args.sample_size,
+        #                                                             silence_threshold=silence_threshold)
+
+
         # dequeue audio samples
         audio_batch = reader.dequeue(args.batch_size)
 
