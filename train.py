@@ -319,9 +319,6 @@ def main():
 		# dequeue audio samples
 		audio_batch = reader.dq_audio(args.batch_size)
 
-		# dequeue audio samples
-		audio_batch = reader.dequeue(args.batch_size)
-
 		# dequeue gc embeddings
 		if gc_enabled:
 			gc_id_batch = reader.dq_gc(args.batch_size)
