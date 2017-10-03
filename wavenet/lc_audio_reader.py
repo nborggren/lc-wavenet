@@ -347,7 +347,7 @@ class MidiMapper():
 	def sample_to_microseconds(self, sample_num):
 		'''takes in a sample number of the wav and the sample rate and 
 			gets the corresponding microseconds of the sample in the song'''
-		return (sample_num / self.sample_rate)
+		return (int(10e6) * sample_num / self.sample_rate)
 		
 		
 	def tick_delta_to_microseconds(self, delta_ticks):
@@ -446,7 +446,7 @@ class MidiMapper():
 		if end_sample is None:
 			end_sample = self.end_sample
 		end_time = self.sample_to_microseconds(end_sample)
-		print("Starting time for upsample is {}".format(end_time))
+		print("Ending time for upsample is {}".format(end_time))
 
 		counter = self.first_note_index
 		print("First note index is {}".format(counter))
