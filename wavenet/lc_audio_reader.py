@@ -461,17 +461,17 @@ class MidiMapper():
 			event_name  = curr_event.name
 			event_data  = curr_event.data
 			
-			if   event_name is midi.NoteOnEvent.name  and delta_ticks is 0:
+			if   event_name is midi.NoteOnEvent.name  and delta_ticks == 0:
 				note_state.append(event_data[0])
 				
-			elif event_name is midi.NoteOnEvent.name  and delta_ticks is not 0:
+			elif event_name is midi.NoteOnEvent.name  and delta_ticks != 0:
 				self.enq_embeddings(delta_ticks, note_state)
 				note_state.append(event_data[0])
 				
-			elif event_name is midi.NoteOffEvent.name and delta_ticks is 0:
+			elif event_name is midi.NoteOffEvent.name and delta_ticks == 0:
 				note_state.remove(event_data[0])
 				
-			elif event_name is midi.NoteOffEvent.name and delta_ticks is not 0:
+			elif event_name is midi.NoteOffEvent.name and delta_ticks != 0:
 				self.enq_embeddings(delta_ticks, note_state)
 				note_state.remove(event_data[0])
 				
@@ -485,8 +485,8 @@ class MidiMapper():
 					current_time = end_time # to break outer while loop
 				else:
 					current_time = end_time # if not already, to break outer while loop
-			
-			elif event_name is midi.SetTempoEvent.name and delta_ticks is 0:
+
+			elif event_name is midi.SetTempoEvent.name and delta_ticks == 0:
 				# mid-song tempo change
 				# tempo is represented in microseconds per beat as tt tt tt - 24-bit (3-byte) hex
 				# convert first to binary string and then to a decimal number (microsec/beat)
@@ -495,7 +495,7 @@ class MidiMapper():
 								format(curr_event.data[2], '08b'))
 				self.tempo = int(tempo_binary, 2)
 				
-			elif event_name is "Set Tempo" and delta_ticks is not 0:
+			elif event_name is midi.SetTempoEvent.name and delta_ticks != 0:
 				self.enq_embeddings(delta_ticks, note_state)
 				tempo_binary = (format(curr_event.data[0], '08b')+
 								format(curr_event.data[1], '08b')+
@@ -509,8 +509,9 @@ class MidiMapper():
 				
 
 			# increment
-			counter += 1
-			current_time = current_time + self.tick_delta_to_microseconds(delta_ticks)
+			current_time += self.tick_delta_to_microseconds(delta_ticks)
+			if (current_time < end_time):
+				counter += 1
 			print("Current time is {}".format(current_time))
 
 
