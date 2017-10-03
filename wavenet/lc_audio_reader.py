@@ -150,7 +150,7 @@ class LCAudioReader():
 		
 		# DATA QUEUES
 
-		# Audio samples are float32s with encoded as a one hot, so shape is 1 X quantization_channels
+		# Audio samples are float32s that have not yet been encoded into one hots
 		self.audio_placeholder = tf.placeholder(dtype = tf.float32, shape = None)
 		self.q_audio = tf.PaddingFIFOQueue(capacity = q_size, dtypes = [tf.float32], shapes = [(None, 1)])
 		self.enq_audio = self.q_audio.enqueue([self.audio_placeholder])
@@ -165,7 +165,7 @@ class LCAudioReader():
 			# LC samples are embedding vectors with the shape of 1 X LC_channels
 			self.lc_placeholder = tf.placeholder(dtype = tf.float32, shape = (self.lc_channels))
 			self.q_lc = tf.PaddingFIFOQueue(capacity = q_size, dtypes = [tf.float32], shapes = [(None, self.lc_channels)])
-			self.enq_lc = self.q_lc.enqueue([self.lc_placeholder])
+			self.enq_lc = self.q_lc.enqueue([None, self.lc_placeholder])
 
 		# now load in the files and see if they exist
 		audio_files = find_files(self.data_dir, '*.wav')
