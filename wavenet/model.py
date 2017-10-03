@@ -437,7 +437,8 @@ class WaveNetModel(object):
             output = self._generator_conv(
                 input_batch, state_batch, weights_filter)
         return output
-
+        
+    def _generator_dilation_layer(self,
                                   input_batch,
                                   state_batch,
                                   layer_index,
