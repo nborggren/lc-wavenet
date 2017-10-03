@@ -224,7 +224,7 @@ class LCAudioReader():
 					stop = True
 					break
 
-				print("Working on file {} \n".format(filename))
+				print("Working on file {}".format(filename))
 				print("Lenght of audio file is {}".format(len(audio)))
 
 				# TODO: If we remove this silence trimming we can use the randomised queue
@@ -289,9 +289,14 @@ class LCAudioReader():
 					if self.lc_enabled:
 						# ADAPT:
 						# first we pass the get the metadata to pass to the midi mapper
-						mapper.set_sample_range(start_sample = 0, end_sample = len(audio) - 1)
+						mapper.set_sample_range(start_sample = 0, end_sample = len(audio))
+						print("Setting lc time series to :")
+						print(lc_timeseries)
 						mapper.set_midi(lc_timeseries)
+						print("Upsampling")
 						lc_encode = mapper.upsample()
+						print("length of upsampled is {}".format(len(lc_encode)))
+						print("Feeding")
 						self.sess.run(self.enq_lc, feed_dict = {self.lc_placeholder : lc_encode})
 
 
@@ -314,11 +319,11 @@ class MidiMapper():
 		self.lc_channels = lc_channels
 
 		# self.tempo IS THE SAME AS microseconds per beat 
-		# self.resolution IS THE SAME AS ticks per beat or PPQ
+		# self.PPQN IS THE SAME AS resolution of the midi
 		self.start_sample = None
 		self.end_sample = None
 		self.tempo = None
-		self.resolution = None
+		self.PPQN = None
 		self.first_note_index = None
 		self.midi = None
 
@@ -352,13 +357,13 @@ class MidiMapper():
 		if __debug__:
 			print("Tempo is {}".format(self.tempo))
 			print("delta ticks is {}".format(delta_ticks))
-			print("Resolution is {}".format(self.resolution))
-		return (((self.tempo * delta_ticks) / self.resolution))
+			print("Resolution is {}".format(self.PPQN))
+		return (((self.tempo * delta_ticks) / self.PPQN))
 	
 		
 	def microseconds_per_tick(self):
 		'''takes in the tempo and the resolution and outputs the number of microseconds per tick'''
-		return ((self.tempo / self.resolution))
+		return ((self.tempo / self.PPQN))
 	
 	
 	def update_midi_metadata(self):
@@ -392,7 +397,7 @@ class MidiMapper():
 		self.tempo = tempo if tempo is not None else 500000
 
 		# this is the PPQ (pulses per quarter note, aka ticks per beat). Constant.
-		self.resolution = self.midi.resolution
+		self.PPQN = self.midi.resolution
 
 		# this is the index in the track for the first note of midi
 		self.first_note_index = first_note_index
@@ -474,7 +479,7 @@ class MidiMapper():
 				# warn if gap between midi and wav, then update time
 				# the embedding is already zero-padded, so no need to pad it
 				# get the bpm and find how many seconds for one beat and then half that
-				if (end_time - current_time) > (self.resolution / 2000):
+				if (end_time - current_time) > (self.PPQN / 2):
 					# the MIDI ended, but the .wav sample hasn't reached its end
 					print("The given .wav file is longer than the matching MIDI file. Please check that the MIDI and .wav line up correctly.")
 					current_time = end_time # to break outer while loop
