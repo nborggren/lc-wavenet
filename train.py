@@ -345,7 +345,7 @@ def main():
 		initial_filter_width = wavenet_params["initial_filter_width"],
 		histograms = args.histograms,
 		gc_channels = args.gc_channels,
-		gc_cardinality = reader.gc_category_cardinality,
+		gc_cardinality = reader.get_gc_cardinality(),
 		initial_lc_channels = initial_lc_channels,
 		lc_channels = lc_channels)
 
