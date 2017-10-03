@@ -163,7 +163,7 @@ class LCAudioReader():
 
 		if self.lc_enabled:	
 			# LC samples are embedding vectors with the shape of 1 X LC_channels
-			self.lc_placeholder = tf.placeholder(dtype = tf.float32, shape = (self.lc_channels))
+			self.lc_placeholder = tf.placeholder(dtype = tf.float32, shape = (1, self.lc_channels))
 			self.q_lc = tf.PaddingFIFOQueue(capacity = q_size, dtypes = [tf.float32], shapes = [(None,  self.lc_channels)])
 			self.enq_lc = self.q_lc.enqueue([self.lc_placeholder])
 
