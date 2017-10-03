@@ -318,7 +318,7 @@ class MidiMapper():
 		self.sample_rate = sample_rate
 		self.lc_channels = lc_channels
 
-		# self.tempo IS THE SAME AS microseconds per beat 
+		# self.tempo IS THE SAME AS microseconds per beat: default is 120 BPM = 500000 usecs per beat
 		# self.PPQN IS THE SAME AS resolution of the midi
 		self.start_sample = None
 		self.end_sample = None
@@ -347,13 +347,12 @@ class MidiMapper():
 	def sample_to_microseconds(self, sample_num):
 		'''takes in a sample number of the wav and the sample rate and 
 			gets the corresponding microseconds of the sample in the song'''
-		return (int(10e6) * sample_num / self.sample_rate)
+		return (int(1e6) / self.sample_rate) * sample_num
 		
 		
 	def tick_delta_to_microseconds(self, delta_ticks):
 		'''converts a range of midi ticks into a range of microseconds'''
-		# microseconds = microsec/beat * tick * beat/tick / 1000
-		# seconds = microseconds / 1000
+		# microseconds = microsec/beat * tick * beat/tick
 		if __debug__:
 			print("Tempo is {}".format(self.tempo))
 			print("delta ticks is {}".format(delta_ticks))
