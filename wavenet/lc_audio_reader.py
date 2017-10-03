@@ -296,6 +296,8 @@ class LCAudioReader():
 						print("Upsampling")
 						lc_encode = mapper.upsample()
 						print("length of upsampled is {}".format(len(lc_encode)))
+						print("Upsampled array is")
+						print(lc_encode)
 						print("Feeding")
 						self.sess.run(self.enq_lc, feed_dict = {self.lc_placeholder : lc_encode})
 
