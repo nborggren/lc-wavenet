@@ -417,7 +417,7 @@ class MidiMapper():
 		for i in range(num_embeddings - 1):
 			# an empty embedding which is the intialzation for each elemnt of the mapper queue
 			# we cannot use a single empty variable and assign 1s to it as all array variables are handles and not literals
-			embedding = np.zeros(shape = (self.lc_channels), type = np.float32)
+			embedding = np.zeros(shape = (self.lc_channels), dtype = np.float32)
 			
 			# single line for loop that encodes the embedding according the state vector of the notes
 			for j in range(len(note_state) - 1):
@@ -523,7 +523,7 @@ class MidiMapper():
 		# now return all indicidual embeddings as one list
 		
 		num_embeddings = self.mapper_lc_q.qsize()
-		embedding_vector = np.zeros(shape = (self.mapper_lc_q.qsize(), self.lc_channels), type = np.float32)
+		embedding_vector = np.zeros(shape = (self.mapper_lc_q.qsize(), self.lc_channels), dtype = np.float32)
 
 		for i in range(num_embeddings - 1):
 			embedding_vector[i] = self.mapper_lc_q.get()
