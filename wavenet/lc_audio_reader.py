@@ -163,8 +163,8 @@ class LCAudioReader():
 
 		if self.lc_enabled:	
 			# LC samples are embedding vectors with the shape of 1 X LC_channels
-			self.lc_placeholder = tf.placeholder(dtype = tf.float32, shape = (None, self.lc_channels))
-			self.q_lc = tf.PaddingFIFOQueue(capacity = q_size, dtypes = [tf.float32], shapes = [(None, 1)])
+			self.lc_placeholder = tf.placeholder(dtype = tf.float32, shape = (self.lc_channels))
+			self.q_lc = tf.PaddingFIFOQueue(capacity = q_size, dtypes = [tf.float32], shapes = [(None,  self.lc_channels)])
 			self.enq_lc = self.q_lc.enqueue([self.lc_placeholder])
 
 		# now load in the files and see if they exist
@@ -314,7 +314,6 @@ class MidiMapper():
 		# input variabels
 		self.sample_rate = sample_rate
 		self.lc_channels = lc_channels
-
 
 		# self.tempo IS THE SAME AS microseconds per beat 
 		# self.resolution IS THE SAME AS ticks per beat or PPQ

@@ -310,7 +310,7 @@ def main():
 									wavenet_params["initial_filter_width"]),
 							   gc_enabled = gc_enabled,
 							   lc_enabled = lc_enabled,
-							   lc_channels = args.lc_channels,
+							   lc_channels = args.initial_lc_channels,
 							   lc_fileformat = args.lc_fileformat,
 							   sample_rate = wavenet_params['sample_rate'],
 							   sample_size = args.sample_size,
@@ -342,9 +342,7 @@ def main():
 
 		# dequeue lc embeddings
 		if lc_enabled:
-			lc_encoded_batch = tf.placeholder(tf.float32, [1,100000,args.initial_lc_channels])
 			lc_encoded_batch = reader.dq_lc(args.batch_size) 
-			# TODO: Should Uncomment later after the initial issues of reader.dq_lc
 		else:
 			lc_encoded_batch = None
 
