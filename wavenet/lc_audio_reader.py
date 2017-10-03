@@ -522,8 +522,8 @@ class MidiMapper():
 	
 		# now return all indicidual embeddings as one list
 		
-		num_embeddings = self.mapper_lc_q.size()
-		embedding_vector = np.zeros(shape = (self.mapper_lc_q.size(), self.lc_channels), type = np.float32)
+		num_embeddings = self.mapper_lc_q.qsize()
+		embedding_vector = np.zeros(shape = (self.mapper_lc_q.qsize(), self.lc_channels), type = np.float32)
 
 		for i in range(num_embeddings - 1):
 			embedding_vector[i] = self.mapper_lc_q.get()
