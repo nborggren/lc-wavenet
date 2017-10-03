@@ -319,18 +319,6 @@ def main():
 		# dequeue audio samples
 		audio_batch = reader.dq_audio(args.batch_size)
 
-		reader = AudioReader(
-			args.data_dir,
-			coord,
-			sample_rate=wavenet_params['sample_rate'],
-			gc_enabled=gc_enabled,
-			receptive_field=WaveNetModel.calculate_receptive_field(wavenet_params["filter_width"],
-																   wavenet_params["dilations"],
-																   wavenet_params["scalar_input"],
-																   wavenet_params["initial_filter_width"]),
-			sample_size=args.sample_size,
-			silence_threshold=silence_threshold)
-
 		# dequeue audio samples
 		audio_batch = reader.dequeue(args.batch_size)
 
