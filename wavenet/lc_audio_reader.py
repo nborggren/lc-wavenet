@@ -303,8 +303,6 @@ class LCAudioReader():
 			self.threads.append(thread)
 		return self.threads
 
-
-
 # Template for the midi mapper
 class MidiMapper():
 	
@@ -448,7 +446,7 @@ class MidiMapper():
 		counter = self.first_note_index
 		print("First note index is {}".format(counter))
 		
-		while current_time is not end_time:
+		while current_time < end_time:
 			# first get the current midi event
 			curr_event = midi_track[counter]
 			print("Counter : {}".format(counter))
