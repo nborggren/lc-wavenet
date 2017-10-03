@@ -534,4 +534,3 @@ class MidiMapper():
 		# colum is num_embeddings rows tall
 		# each row in this column self.lc_channels float32s wide
 		return embedding_vector
-
