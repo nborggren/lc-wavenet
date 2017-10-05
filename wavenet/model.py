@@ -388,6 +388,7 @@ class WaveNetModel(object):
         transformed = tf.nn.conv1d(
             out, weights_dense, stride = 1, padding="SAME", name="dense")
         
+        
         # The 1x1 conv to produce the skip output
         skip_cut = tf.shape(out)[1] - output_width
         out_skip = tf.slice(out, [0, skip_cut, 0], [-1, -1, -1])
@@ -437,14 +438,15 @@ class WaveNetModel(object):
             output = self._generator_conv(
                 input_batch, state_batch, weights_filter)
         return output
-        
+
     def _generator_dilation_layer(self,
                                   input_batch,
                                   state_batch,
                                   layer_index,
                                   dilation,
                                   gc_batch, 
-                                  lc_batch):
+                                  lc_input_batch,
+                                  lc_state_batch):
         variables = self.variables['dilated_stack'][layer_index]
 
         weights_filter = variables['filter']
@@ -467,20 +469,14 @@ class WaveNetModel(object):
 
         # LOCAL CONDITION
         # Creating filter and gates to perform dilated conv using LC params.
-        if lc_batch is not None:
-            ''' Reshape the batch into a matrix we can 1x1 convolve on. The -1 argument
-             ensures the the size of that dimension is computed so that the total
-             size remains constant. '''
-            lc_batch = tf.reshape(lc_batch, shape = (1, -1))
+        if lc_state_batch is not None:
+            ''' LC_batch should be treated as like the input_batch and state_batch '''
+
             weights_lc_filter = variables['lc_filtweights']
-            # Take past filter weights 
-            weights_lc_filter = weights_lc_filter[0, :, :]
-            # 1x1 convolution with batch. Output 1x(# of dilation_channels)
-            output_filter += tf.matmul(lc_batch, weights_lc_filter)
-            # Same with gate
             weights_lc_gate = variables['lc_gateweights']
-            weights_lc_gate = weights_lc_gate[0, :, :]
-            output_gate += tf.matmul(lc_batch, weights_lc_gate)
+
+            output_filter += self._generator_conv(lc_input_batch, lc_state_batch, weights_lc_filter)
+            output_gate += self._generator_conv(lc_input_batch, lc_state_batch, weights_lc_gate)
 
         if self.use_biases:
             output_filter = output_filter + variables['filter_bias']
@@ -508,12 +504,6 @@ class WaveNetModel(object):
         current_layer = input_batch
         lc_batch_casualed = lc_batch
 
-        # Pre-process the input with a regular convolution
-        if self.scalar_input:
-            initial_channels = 1
-        else:
-            initial_channels = self.quantization_channels
-
         current_layer = self._create_causal_layer(current_layer)
         if lc_batch is not None:
             lc_batch_casualed = self._create_causal_layer_lc(lc_batch_casualed)  # ALi & Brian
@@ -523,6 +513,9 @@ class WaveNetModel(object):
         # Add all defined dilation layers.
         with tf.name_scope('dilated_stack'):
             for layer_index, dilation in enumerate(self.dilations):
+                print('dialation and layer_index')
+                print(dilation)
+                print(layer_index)
                 with tf.name_scope('layer{}'.format(layer_index)):
                     output, current_layer = self._create_dilation_layer(
                         current_layer,
@@ -564,6 +557,8 @@ class WaveNetModel(object):
 
     def _create_generator(self, input_batch, gc_batch, lc_batch):
         '''Construct an efficient incremental generator.'''
+        
+        # TODO lc_batch should conver to lc_input_batch_casualed and ...state..
         init_ops = []
         push_ops = []
         outputs = []
@@ -604,7 +599,7 @@ class WaveNetModel(object):
 
                     output, current_layer = self._generator_dilation_layer(
                         current_layer, current_state, layer_index, dilation,
-                        gc_batch, lc_batch)
+                        gc_batch,lc_input_batch_casualed, lc_state_batch_casualed)
                     outputs.append(output)
         self.init_ops = init_ops
         self.push_ops = push_ops
@@ -757,6 +752,8 @@ class WaveNetModel(object):
 
         The variables are all scoped to the given name.
         '''
+        print(np.shape(input_batch))
+        print(np.shape(lc_encoded_batch))
         with tf.name_scope(name):
             # We mu-law encode and quantize the input audioform.
             encoded_input = mu_law_encode(input_batch, self.quantization_channels)
@@ -764,13 +761,13 @@ class WaveNetModel(object):
             gc_embedding = self._embed_gc(gc_batch)
             encoded = self._one_hot(encoded_input)
             
-	    if self.scalar_input:
+            if self.scalar_input:
                 network_input = tf.reshape(
                     tf.cast(input_batch, tf.float32),
                     [self.batch_size, -1, 1])
                 lc_encoded_batch = tf.reshape(
                     tf.cast(lc_encoded_batch, tf.float32),
-                    [self.batch_size, -1, 1])              # TODO: MIDI should be encoded already
+                    [self.batch_size, -1, 128])
             else:
                 network_input = encoded
 
@@ -816,8 +813,7 @@ class WaveNetModel(object):
                     # Add the regularization term to the loss
                     total_loss = (reduced_loss +
                                   l2_regularization_strength * l2_loss)
-
-                    tf.summary.scalar('l2_loss', l2_loss)
                     tf.summary.scalar('total_loss', total_loss)
-
+                    tf.summary.scalar('l2_loss', l2_loss)
+                    
                     return total_loss

@@ -33,10 +33,10 @@ module load python/2.7.13
 module load tensorflow/r1.2
 
 # EXECUTION LINE
-python /projectnb/textconv/ali/tensorflow-wavenet/train.py \
---data-dir=/projectnb/textconv/ali/tensorflow-wavenet/wavenet \
---logdir=/projectnb/textconv/ali/Logs \
---wavenet-params=/projectnb/textconv/ali/tensorflow-wavenet/lc_wavenet_params.json \
+python /projectnb/textconv/WaveNet/Vijay/reader_debug/train.py \
+--data-dir=/projectnb/textconv/WaveNet/Vijay/reader_debug/wavenet \
+--logdir=/projectnb/textconv/WaveNet/Vijay/reader_debug/Logs \
+--wavenet-params=/projectnb/textconv/WaveNet/Vijay/reader_debug/lc_wavenet_params.json \
 --learning-rate=0.001 \
 --initial-lc-channels=128 \
 --lc-channels=16 \
