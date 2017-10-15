@@ -301,11 +301,12 @@ class LCAudioReader():
 						lc_encode = np.concatenate((lc_encode_prepad, lc_encode), axis = 0)
 
 						delta_len = len(audio) - len(lc_encode)
+						print("delta len is {}".format(delta_len))
 						if (delta_len > 0):
 							lc_encode_postpad = np.zeros(shape = (delta_len, self.lc_channels), dtype = np.float32)  
 							lc_encode = np.concatenate((lc_encode, lc_encode_postpad), axis = 0)
 						elif (delta_len < 0):
-							lc_encode = lc_encode[slice(len(lc_encode) - delta_len - 1, len(lc_encode - 1))]
+							lc_encode = lc_encode[slice(len(lc_encode) - delta_len - 1, len(lc_encode) - 1)]
 
 						print("LC Encode is the following")
 						print(lc_encode)
