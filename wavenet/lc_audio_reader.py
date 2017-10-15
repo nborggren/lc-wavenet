@@ -224,9 +224,6 @@ class LCAudioReader():
 					stop = True
 					break
 
-				print("Working on file {}".format(filename))
-				print("Lenght of audio file is {}".format(len(audio)))
-
 				# TODO: If we remove this silence trimming we can use the randomised queue
 				# instead of the padding queue so that we dont have to take care of midi with silence
 				if self.silence_threshold is not None:
@@ -272,9 +269,7 @@ class LCAudioReader():
 							# TODO: sanity check the following four lines
 							mapper.set_sample_range(start_sample = previous_end, end_sample = new_end)
 							mapper.set_midi(lc_timeseries)
-							print(lc_timeseries)
 							lc_encode = mapper.upsample(start_sample = previous_end, end_sample = new_end)
-							print("LC encode is {}".format(lc_encode))
 							self.sess.run(self.enq_lc, feed_dict = {self.lc_placeholder : lc_encode})
 							# after queueing, shift audio frame to the next one
 							previous_end = new_end
@@ -300,20 +295,13 @@ class LCAudioReader():
 						lc_encode = mapper.upsample()
 						lc_encode = np.concatenate((lc_encode_prepad, lc_encode), axis = 0)
 
-						print("Precut LC encode len is {}".format(len(lc_encode)))
 						delta_len = len(audio) - len(lc_encode)
-						print("delta len is {}".format(delta_len))
 						if (delta_len > 0):
 							lc_encode_postpad = np.zeros(shape = (delta_len, self.lc_channels), dtype = np.float32)  
 							lc_encode = np.concatenate((lc_encode, lc_encode_postpad), axis = 0)
 						elif (delta_len < 0):
 							lc_encode = lc_encode[0:len(lc_encode) - delta_len - 1:1]
 
-						print("LC Encode is the following")
-						print(lc_encode)
-						print("Lenght of audio timeseries is {}".format(len(audio)))
-						print("Length of LC timeseries is {}".format(len(lc_encode)))
-						print("Feeding")
 						self.sess.run(self.enq_lc, feed_dict = {self.lc_placeholder : lc_encode})
 
 
@@ -371,9 +359,6 @@ class MidiMapper():
 		'''converts a range of midi ticks into a range of microseconds'''
 		# microseconds = microsec/beat * tick * beat/tick
 		if __debug__:
-			print("Tempo is {}".format(self.tempo))
-			print("delta ticks is {}".format(delta_ticks))
-			print("Resolution is {}".format(self.PPQN))
 		return (((self.tempo * delta_ticks) / self.PPQN))
 	
 		
@@ -418,7 +403,6 @@ class MidiMapper():
 		# this is the index in the track for the first note of midi
 		self.first_note_index = first_note_index
 
-		print("First note index set to {} from get metadata".format(self.first_note_index))
 		
 		
 	def enq_embeddings(self, delta_ticks, note_state):
@@ -457,7 +441,6 @@ class MidiMapper():
 		
 		# First get the start and end times of the midi section to be extracted and upsampled
 		current_time = self.sample_to_microseconds(start_sample)
-		print("Starting time for upsample is {}".format(current_time))
 
 		if end_sample is None:
 			end_sample = self.end_sample
