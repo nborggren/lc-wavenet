@@ -413,8 +413,6 @@ class MidiMapper():
 		# of inserts will be more efficient if used with enqueue_many
 		num_embeddings = upsample_time * self.sample_rate / 1000000
 
-		print("UPSAMPLE COUNT = {}".format(upsample_time * self.sample_rate / 1000000))
-
 		for i in range(num_embeddings - 1):
 			# an empty embedding which is the intialzation for each elemnt of the mapper queue
 			# we cannot use a single empty variable and assign 1s to it as all array variables are handles and not literals
@@ -478,7 +476,7 @@ class MidiMapper():
 				# get the bpm and find how many seconds for one beat and then half that
 				if (end_time - current_time) > (self.PPQN / 2):
 					# the MIDI ended, but the .wav sample hasn't reached its end
-					print("The given .wav file is longer than the matching MIDI file. Please check that the MIDI and .wav line up correctly.")
+					# print("The given .wav file is longer than the matching MIDI file. Please check that the MIDI and .wav line up correctly.")
 					current_time = end_time # to break outer while loop
 				else:
 					current_time = end_time # if not already, to break outer while loop
