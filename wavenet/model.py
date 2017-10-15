@@ -502,12 +502,13 @@ class WaveNetModel(object):
     def _create_network(self, input_batch, gc_batch, lc_batch):
         '''Construct the WaveNet network.'''
         outputs = []
-        current_layer = input_batch
-        lc_batch_causaled = lc_batch
+        
+        print("Shape of input is {}".format(tf.shape(input_batch)))
+        print("Shape of lc_batch is {}".format(tf.shape(lc_batch)))
 
-        current_layer = self._create_causal_layer(current_layer)
+        current_layer = self._create_causal_layer(input_batch)
         if lc_batch is not None:
-            lc_batch_causaled = self._create_causal_layer_lc(lc_batch_causaled)  # ALi & Brian
+            lc_batch_causaled = self._create_causal_layer_lc(lc_batch)  # ALi & Brian
 
         output_width = tf.shape(input_batch)[1] - self.receptive_field + 1
 
