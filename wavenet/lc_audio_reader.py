@@ -306,7 +306,7 @@ class LCAudioReader():
 							lc_encode_postpad = np.zeros(shape = (delta_len, self.lc_channels), dtype = np.float32)  
 							lc_encode = np.concatenate((lc_encode, lc_encode_postpad), axis = 0)
 						elif (delta_len < 0):
-							lc_encode = lc_encode[slice(len(lc_encode) - delta_len - 1, len(lc_encode) - 1)]
+							lc_encode = lc_encode[delta_len:]
 
 						print("LC Encode is the following")
 						print(lc_encode)
@@ -461,16 +461,16 @@ class MidiMapper():
 		if end_sample is None:
 			end_sample = self.end_sample
 		end_time = self.sample_to_microseconds(end_sample)
-		print("Ending time for upsample is {}".format(end_time))
+		# print("Ending time for upsample is {}".format(end_time))
 
 		counter = self.first_note_index
-		print("First note index is {}".format(counter))
+		# print("First note index is {}".format(counter))
 		
 		while current_time < end_time:
 			# first get the current midi event
 			curr_event = midi_track[counter]
-			print("Counter : {}".format(counter))
-			print("Current event = {}".format(curr_event.name))
+			# print("Counter : {}".format(counter))
+			# print("Current event = {}".format(curr_event.name))
 			# extract the time tick deltas and the event types form the midi
 			delta_ticks = curr_event.tick
 			event_name  = curr_event.name
@@ -527,7 +527,7 @@ class MidiMapper():
 			current_time += self.tick_delta_to_microseconds(delta_ticks)
 			if (current_time < end_time):
 				counter += 1
-			print("Current time is {}".format(current_time))
+			# print("Current time is {}".format(current_time))
 
 
 		# save current midi track pointer in case the song is cunked up
