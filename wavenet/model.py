@@ -174,25 +174,25 @@ class WaveNetModel(object):
                 else:
                     initial_channels = self.quantization_channels
                     initial_filter_width = self.filter_width
-                layer['filter'] = create_variable(
-                    'filter',
+                layer['filter_audio'] = create_variable(
+                    'filter_audio',
                     [initial_filter_width,
                      initial_channels,
                      self.residual_channels])
                 print([initial_filter_width,
                      initial_channels,
                      self.residual_channels])
-                var['causal_layer'] = layer
                 
+                # now  if lc is enabled, add it to the var list too
                 if self.lc_channels is not None:
-                    layer_lc = dict()
-    
-                    layer_lc['filter_lc'] = create_variable(
+                    # layer_lc = dict() this is wrong
+                    layer['filter_lc'] = create_variable(
                         'filter_lc',
                         [initial_filter_width,
                          self.initial_lc_channels,
                          self.lc_channels])
-                    var['causal_layer_lc'] = layer_lc
+                # now add the created layer to the stack
+                var['causal_layer'] = layer
 
             var['dilated_stack'] = list()
             with tf.variable_scope('dilated_stack'):
@@ -283,15 +283,16 @@ class WaveNetModel(object):
         The layer can change the number of channels.
         '''
         with tf.name_scope('causal_layer'):
-            weights_filter = self.variables['causal_layer']['filter']
+            weights_filter = self.variables['causal_layer']['filter_audio']
             return causal_conv(input_batch, weights_filter, 1)
+
     def _create_causal_layer_lc(self, lc_batch):
         '''Creates a single causal convolution layer.
 
         The layer can change the number of channels.
         '''
         with tf.name_scope('causal_layer'):
-            weights_filter = self.variables['causal_layer_lc']['filter_lc']
+            weights_filter = self.variables['causal_layer']['filter_lc']
             return causal_conv(lc_batch, weights_filter, 1)
 
     def _create_dilation_layer(self,
@@ -502,11 +503,11 @@ class WaveNetModel(object):
         '''Construct the WaveNet network.'''
         outputs = []
         current_layer = input_batch
-        lc_batch_casualed = lc_batch
+        lc_batch_causaled = lc_batch
 
         current_layer = self._create_causal_layer(current_layer)
         if lc_batch is not None:
-            lc_batch_casualed = self._create_causal_layer_lc(lc_batch_casualed)  # ALi & Brian
+            lc_batch_causaled = self._create_causal_layer_lc(lc_batch_causaled)  # ALi & Brian
 
         output_width = tf.shape(input_batch)[1] - self.receptive_field + 1
 
@@ -522,7 +523,7 @@ class WaveNetModel(object):
                         layer_index,
                         dilation,
                         gc_batch, output_width,
-                        lc_batch_casualed)
+                        lc_batch_causaled)
                     outputs.append(output)
 
         with tf.name_scope('postprocessing'):
