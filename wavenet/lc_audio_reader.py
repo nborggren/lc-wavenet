@@ -241,19 +241,23 @@ class LCAudioReader():
 							  .format(filename))
 						continue
 
+				len_audio_prepad = len(audio)
 				# now pad beginning of samples with n = receptive_ field number of 0s 
 				# TODO: figure out why we are padding this ???
 				audio = np.pad(audio, [[self.receptive_field, 0], [0, 0]], 'constant')
+				len_audio_postpad = len(audio)
 
 				# CHOP UP AUDIO
 				if self.sample_size:
+					# TODO: sample size has been disabled for now. adapt to support in the future
 					if self.lc_enabled:
 						# ADAPT:
 						# setup parametrs for MidiMapper
 						previous_end = 0
 						new_end = self.receptive_field - 1
 						mapper.set_midi(lc_timeseries)
-
+						np.zeros(shape = (len_audio_postpad - len_audio_prepad, self.lc_channels), dtype = np.float32)
+						
 					# TODO: understand the reason for this piece voodoo from the original reader
 					while len(audio) > self.receptive_field:
 						piece = audio[:(self.receptive_field + self.sample_size), :]
@@ -287,17 +291,23 @@ class LCAudioReader():
 					
 					# add LC mapping to queue if enabled
 					if self.lc_enabled:
+						# first we include the zero embeddings to compensate for the padding of the audio
+						lc_encode_prepad = np.zeros(shape = (len_audio_postpad - len_audio_prepad, self.lc_channels), dtype = np.float32)
 						# ADAPT:
 						# first we pass the get the metadata to pass to the midi mapper
 						mapper.set_sample_range(start_sample = 0, end_sample = len(audio))
-						print("Setting lc time series to :")
-						print(lc_timeseries)
 						mapper.set_midi(lc_timeseries)
-						print("Upsampling")
 						lc_encode = mapper.upsample()
-						print("length of upsampled is {}".format(len(lc_encode)))
-						print("Upsampled array is")
-						print(lc_encode)
+						lc_encode = np.concatenate((lc_encode_prepad, lc_encode), axis = 0)
+
+						delta_len = len(audio) - len(lc_encode)
+						if (delta_len > 0):
+							lc_encode_postpad = np.zeros(shape = (delta_len, self.lc_channels), dtype = np.float32)  
+							lc_encode = np.concatenate((lc_encode, lc_encode_postpad), axis = 0)
+						elif (delta_len < 0):
+							lc_encode = lc_encode[slice(len(lc_encode) - delta_len - 1, len(lc_encode - 1))] 
+						print("Lenght of audio timeseries is {}".format(len(audio)))
+						print("Length of LC timeseries is {}".format(len(lc_encode)))
 						print("Feeding")
 						self.sess.run(self.enq_lc, feed_dict = {self.lc_placeholder : lc_encode})
 

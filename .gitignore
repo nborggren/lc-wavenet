@@ -3,4 +3,4 @@ VCTK-Corpus/
 *.pyc
 *.wav
 *.mid
-
+/Logs*
