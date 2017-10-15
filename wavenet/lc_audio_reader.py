@@ -357,8 +357,6 @@ class MidiMapper():
 		
 	def tick_delta_to_microseconds(self, delta_ticks):
 		'''converts a range of midi ticks into a range of microseconds'''
-		# microseconds = microsec/beat * tick * beat/tick
-		if __debug__:
 		return (((self.tempo * delta_ticks) / self.PPQN))
 	
 		
