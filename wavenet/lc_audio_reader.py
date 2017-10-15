@@ -300,13 +300,14 @@ class LCAudioReader():
 						lc_encode = mapper.upsample()
 						lc_encode = np.concatenate((lc_encode_prepad, lc_encode), axis = 0)
 
+						print("Precut LC encode len is {}".format(len(lc_encode)))
 						delta_len = len(audio) - len(lc_encode)
 						print("delta len is {}".format(delta_len))
 						if (delta_len > 0):
 							lc_encode_postpad = np.zeros(shape = (delta_len, self.lc_channels), dtype = np.float32)  
 							lc_encode = np.concatenate((lc_encode, lc_encode_postpad), axis = 0)
 						elif (delta_len < 0):
-							lc_encode = lc_encode[delta_len:]
+							lc_encode = lc_encode[0:len(lc_encode) - delta_len - 1:1]
 
 						print("LC Encode is the following")
 						print(lc_encode)
