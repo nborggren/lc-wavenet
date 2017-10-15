@@ -186,11 +186,15 @@ class WaveNetModel(object):
                 # now  if lc is enabled, add it to the var list too
                 if self.lc_channels is not None:
                     # layer_lc = dict() this is wrong
+                    # lc filter is 32x128x16
                     layer['filter_lc'] = create_variable(
                         'filter_lc',
                         [initial_filter_width,
                          self.initial_lc_channels,
                          self.lc_channels])
+                    print([initial_filter_width,
+                           self.initial_lc_channels,
+                           self.lc_channels])
                 # now add the created layer to the stack
                 var['causal_layer'] = layer
 
@@ -293,6 +297,7 @@ class WaveNetModel(object):
         '''
         with tf.name_scope('causal_layer'):
             weights_filter = self.variables['causal_layer']['filter_lc']
+            # convolving lc_batch with 32x128x16 
             return causal_conv(lc_batch, weights_filter, 1)
 
     def _create_dilation_layer(self,

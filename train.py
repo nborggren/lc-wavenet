@@ -310,7 +310,7 @@ def main():
 									wavenet_params["initial_filter_width"]),
 							   gc_enabled = gc_enabled,
 							   lc_enabled = lc_enabled,
-							   lc_channels = args.initial_lc_channels,
+							   lc_channels = initial_lc_channels,
 							   lc_fileformat = args.lc_fileformat,
 							   sample_rate = wavenet_params['sample_rate'],
 							   sample_size = args.sample_size,
@@ -403,11 +403,7 @@ def main():
 	last_saved_step = saved_global_step
 	try:
 		for step in range(saved_global_step + 1, args.num_steps):
-			print('***************************888*****************')
-			print(step)
 			start_time = time.time()
-			print(audio_batch)
-			feed = {lc_encoded_batch :np.random.rand(1,100000,args.initial_lc_channels).astype(np.float32)}
 			if args.store_metadata and step % 50 == 0:
 				# Slow run that stores extra information for debugging.
 				print('Storing metadata')
