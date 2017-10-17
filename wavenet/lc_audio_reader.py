@@ -246,12 +246,13 @@ class LCAudioReader():
 
 				# CHOP UP AUDIO
 				if self.sample_size:
+					first_loop = true
 					# TODO: sample size has been disabled for now. adapt to support in the future
 					if self.lc_enabled:
 						# ADAPT:
 						# setup parametrs for MidiMapper
 						previous_end = 0
-						new_end = self.receptive_field - 1
+						new_end = self.sample_size - 1
 						mapper.set_midi(lc_timeseries)
 						np.zeros(shape = (len_audio_postpad - len_audio_prepad, self.lc_channels), dtype = np.float32)
 						
@@ -270,11 +271,24 @@ class LCAudioReader():
 							mapper.set_sample_range(start_sample = previous_end, end_sample = new_end)
 							mapper.set_midi(lc_timeseries)
 							lc_encode = mapper.upsample(start_sample = previous_end, end_sample = new_end)
+							if (first_loop):
+								first_pad = np.zeros(shape = (len_audio_postpad - len_audio_prepad, self.lc_channels), dtype = np.float32)
+								lc_encode = np.concatenate((first_pad, lc_encode), axis = 0)
+
+							# now pad the embeddings to match size
+							delta_len = len(audio) - len(lc_embedding)
+							if (delta_len > 0):
+								lc_encode_postpad = np.zeros(shape = (delta_len, self.lc_channels), dtype = np.float32)
+								lc_encode = np.concatenate((lc_encode, lc_encode_postpad), axis = 0)
+							elif (delta_len < 0):
+								lc_encode = lc_encode[0:len(lc_encode) - delta_len - 1:1]
+
 							self.sess.run(self.enq_lc, feed_dict = {self.lc_placeholder : lc_encode})
 							# after queueing, shift audio frame to the next one
 							previous_end = new_end
 							new_end = new_end + self.receptive_field + self.sample_size
-
+						
+						first_loop = false
 				# DONT CHOP UP AUDIO
 				else:
 					# otherwise feed the whole audio sample in its entireity

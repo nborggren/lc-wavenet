@@ -39,7 +39,7 @@ python /projectnb/textconv/WaveNet/Vijay/reader_debug/train.py \
 --wavenet-params=/projectnb/textconv/WaveNet/Vijay/reader_debug/lc_wavenet_params.json \
 --learning-rate=0.001 \
 --initial-lc-channels=128 \
---lc-channels=32 \
+--lc-channels=16 \
 --lc-fileformat=*.mid
 
 
