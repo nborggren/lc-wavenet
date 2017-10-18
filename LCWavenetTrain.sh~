@@ -33,7 +33,7 @@ module load python/2.7.13
 module load tensorflow/r1.2
 
 # EXECUTION LINE
-python /projectnb/textconv/LCWaveNet/Code/tensorflow-wavenet/train.py \
+python /projectnb/textconv/LCWaveNet/Code/tensorflow-wavenet/wavenet/train.py \
 --data-dir=/projectnb/textconv/LCWaveNet/Data/Contemporary \
 --logdir=/projectnb/textconv/LCWaveNet/Logs \
 --wavenet-params=/projectnb/textconv/LCWaveNet/Code/tensorflow-wavenet/lc_wavenet_params.json \

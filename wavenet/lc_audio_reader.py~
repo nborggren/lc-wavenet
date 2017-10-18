@@ -483,8 +483,7 @@ class MidiMapper():
 				
 			elif event_name is midi.NoteOffEvent.name and delta_ticks != 0:
 				self.enq_embeddings(delta_ticks, note_state)
-				if event_data[0] in note_state:
-					note_state.remove(event_data[0])
+				note_state.remove(event_data[0])
 				
 			elif event_name is midi.EndOfTrackEvent.name:
 				# warn if gap between midi and wav, then update time
