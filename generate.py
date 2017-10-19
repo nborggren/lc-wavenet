@@ -93,10 +93,15 @@ def get_args():
 		help = 'ID of category to generate, if globally conditioned.')
 
 	# LC params
+	parser.add_argument('--initial-lc-channels',
+		type = int,
+		default = None,
+		help = "Number of inital local conditioning channels output by the upsampler. Default: None. Expecting: int")
+
 	parser.add_argument('--lc-channels',
 		type = int,
 		default = None,
-		help = "Number of local conditioning channels. Default: None. Expecting: int")
+		help = "Number of local conditioning channels used by the network. Default: None. Expecting: int")
 
 	parser.add_argument('--lc-fileformat',
 		type = str,
@@ -210,6 +215,7 @@ def main():
 		initial_filter_width = wavenet_params['initial_filter_width'],
 		gc_channels = args.gc_channels,
 		gc_cardinality = args.gc_cardinality,
+		initial_lc_channels = args.initial_lc_channels,
 		lc_channels = args.lc_channels)
 
 	# first set bool flags for conditioned generation
