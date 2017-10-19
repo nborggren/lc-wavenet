@@ -176,7 +176,7 @@ def get_generation_length_from_midi(sample_rate, midi_filepath):
 							format(curr_event.data[1], '08b')+
 							format(curr_event.data[2], '08b'))
 			curr_tempo = int(tempo_binary, 2)
-		elif curr_event.name = midi.EndOfTrackEvent.name:
+		elif curr_event.name == midi.EndOfTrackEvent.name:
 			break
 		else:
 			total_microseconds += ((curr_tempo * curr_event.tick) / resolution)
