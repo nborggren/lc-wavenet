@@ -13,7 +13,6 @@ import midi
 
 from wavenet import WaveNetModel, mu_law_decode, mu_law_encode, audio_reader
 
-SAMPLES = 16000
 TEMPERATURE = 1.0
 LOGDIR = './logdir'
 WAVENET_PARAMS = './wavenet_params.json'
@@ -38,7 +37,7 @@ def get_args():
 
 	parser.add_argument('--samples',
 		type = int,
-		default = SAMPLES,
+		default = None,
 		help = 'How many waveform samples to generate')
 	
 	parser.add_argument('--temperature',
@@ -135,9 +134,9 @@ def get_args():
 			raise ValueError("No local conditioning file provided in the LC filepath")
 
 	if args.lc_channels and args.samples:
-		print("WARNING: LC enabled and number of samples to be generated also given. \
-			In this case, the sample number will be ignored. Total number of samples \
-			generated will depend on the LC file.")
+		print("WARNING: LC enabled and number of samples to be generated also given.\n",
+			"In this case, the sample number will be ignored. Total number of samples",
+			"generated will depend on the LC file.")
 
 	return args
 
