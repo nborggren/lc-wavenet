@@ -453,8 +453,7 @@ class MidiMapper():
 		current_time = self.sample_to_microseconds(start_sample)
 
 		if end_sample is None:
-			end_sample = self.end_sample
-		end_time = self.sample_to_microseconds(end_sample)
+			end_sample = float('inf')
 		# print("Ending time for upsample is {}".format(end_time))
 
 		counter = self.first_note_index
@@ -493,9 +492,9 @@ class MidiMapper():
 				if (end_time - current_time) > (self.PPQN / 2):
 					# the MIDI ended, but the .wav sample hasn't reached its end
 					# print("The given .wav file is longer than the matching MIDI file. Please check that the MIDI and .wav line up correctly.")
-					current_time = end_time # to break outer while loop
+					break # to break outer while loop
 				else:
-					current_time = end_time # if not already, to break outer while loop
+					break # if not already, to break outer while loop
 
 			elif event_name is midi.SetTempoEvent.name and delta_ticks == 0:
 				# mid-song tempo change
