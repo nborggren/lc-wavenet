@@ -433,22 +433,27 @@ class WaveNetModel(object):
 		return output
 
 	def _generator_causal_layer(self, input_batch, state_batch):
-		# TODO: this needs LC  weights added to i, maybe?
-		# why does it now have the GC bathc input to it then?
 		with tf.name_scope('causal_layer'):
 			weights_filter = self.variables['causal_layer']['filter']
 			output = self._generator_conv(
 				input_batch, state_batch, weights_filter)
 		return output
 
+	def _generator_causal_layer_lc(self, input_batch, state_batch):
+	with tf.name_scope('causal_layer'):
+		weights_filter = self.variables['causal_layer']['filter_lc']
+		output = self._generator_conv(
+			input_batch, state_batch, weights_filter)
+	return output
+
 	def _generator_dilation_layer(self,
 								  input_batch,
 								  state_batch,
 								  layer_index,
 								  dilation,
-								  gc_batch, 
-								  lc_input_batch,
-								  lc_state_batch):
+								  gc_batch = None, 
+								  lc_input_batch = None,
+								  lc_state_batch = None):
 		variables = self.variables['dilated_stack'][layer_index]
 
 		weights_filter = variables['filter']
@@ -472,7 +477,7 @@ class WaveNetModel(object):
 		# LOCAL CONDITION
 		# Creating filter and gates to perform dilated conv using LC params.
 		if lc_state_batch is not None:
-			''' LC_batch should be treated as like the input_batch and state_batch '''
+			# LC_batch should be treated as like the input_batch and state_batch 
 
 			weights_lc_filter = variables['lc_filtweights']
 			weights_lc_gate = variables['lc_gateweights']
@@ -481,8 +486,8 @@ class WaveNetModel(object):
 			output_gate += self._generator_conv(lc_input_batch, lc_state_batch, weights_lc_gate)
 
 		if self.use_biases:
-			output_filter = output_filter + variables['filter_bias']
-			output_gate = output_gate + variables['gate_bias']
+			output_filter += variables['filter_bias']
+			output_gate += variables['gate_bias']
 
 		out = tf.tanh(output_filter) * tf.sigmoid(output_gate)
 
@@ -560,44 +565,84 @@ class WaveNetModel(object):
 		init_ops = []
 		push_ops = []
 		outputs = []
-		current_layer = input_batch
 
-		q = tf.FIFOQueue(
+		q_audio = tf.FIFOQueue(
 			1,
 			dtypes = tf.float32,
 			shapes = (self.batch_size, self.quantization_channels))
-		init = q.enqueue_many(
+		init_audio = q_audio.enqueue_many(
 			tf.zeros((1, self.batch_size, self.quantization_channels)))
 
-		current_state = q.dequeue()
-		push = q.enqueue([current_layer])
-		init_ops.append(init)
-		push_ops.append(push)
+		current_state = q_audio.dequeue()
+		push_audio = q_audio.enqueue([input_batch])
+		init_ops.append(init_audio)
+		push_ops.append(push_audio)
 
 		current_layer = self._generator_causal_layer(
-							current_layer, current_state)
+							input_batch, current_state)
+
+		if lc_batch is not None:
+			q_lc = tf.FIFOQueue(
+				1,
+				dtpyes = tf.float32,
+				shapes = (1, self.batch_size, self.lc_channels))
+
+			init_lc = q_lc.enqueue_many(
+				tf.zeros((1, self.batch_size, self.lc_channels)))
+
+			current_lc_state = q_lc.dequeue()
+			push_lc = q_lc.enqueue([lc_batch])
+			init_ops.append(init_lc)
+			push_ops.append(push_lc)
+
+			lc_current_layer = self._generator_causal_layer_lc(lc_batch, current_lc_state)
 
 		# Add all defined dilation layers.
 		with tf.name_scope('dilated_stack'):
 			for layer_index, dilation in enumerate(self.dilations):
 				with tf.name_scope('layer{}'.format(layer_index)):
 
-					q = tf.FIFOQueue(
+					q_audio = tf.FIFOQueue(
 						dilation,
 						dtypes = tf.float32,
 						shapes = (self.batch_size, self.residual_channels))
-					init = q.enqueue_many(
-						tf.zeros((dilation, self.batch_size,
-								  self.residual_channels)))
 
-					current_state = q.dequeue()
-					push = q.enqueue([current_layer])
-					init_ops.append(init)
-					push_ops.append(push)
+					init_audio = q_audio.enqueue_many(
+						tf.zeros((dilation, self.batch_size, self.residual_channels)))
 
+					current_state = q_audio.dequeue()
+					push_audio = q_audio.enqueue([current_layer])
+					init_ops.append(init_audio)
+					push_ops.append(push_audio)
+
+
+					gc_batch = None
+					lc_input_batch_casualed = None
+					lc_state_batch_casualed = None
+
+					# if lc is enabled, set up the queues for lc
+					# TODO: this can be made more efficent as the lc convolution does not change as it goes through the layers
+					# ideally we would not need a queue at every layer for lc for this reason
+					# this is only a hack for now
+					if lc_batch is not None:
+						q_lc = tf.FIFOQueue(
+							dilation,
+							dtypes = tf.float32,
+							shapes = (self.batch_size, self.lc_channels))
+
+						init_lc = q_lc.enqueue_many(
+							tf.zeros((dilation, self.batch_size, self.lc_channels)))
+
+						current_lc_state = q_lc.dequeue()
+						push_lc = q_lc.enqueue([lc_current_layer])
+						init_ops.append(init_lc)
+						push_ops.append(push_lc)
+
+					# now perform the convlution at the layer
 					output, current_layer = self._generator_dilation_layer(
 						current_layer, current_state, layer_index, dilation,
-						gc_batch,lc_input_batch_casualed, lc_state_batch_casualed)
+						gc_batch, lc_batch, current_lc_state)
+
 					outputs.append(output)
 		self.init_ops = init_ops
 		self.push_ops = push_ops
@@ -619,11 +664,11 @@ class WaveNetModel(object):
 
 			conv1 = tf.matmul(transformed1, w1[0, :, :])
 			if self.use_biases:
-				conv1 = conv1 + b1
+				conv1 += b1
 			transformed2 = tf.nn.relu(conv1)
 			conv2 = tf.matmul(transformed2, w2[0, :, :])
 			if self.use_biases:
-				conv2 = conv2 + b2
+				conv2 += b2
 
 		return conv2
 
