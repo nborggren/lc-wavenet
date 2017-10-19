@@ -222,17 +222,17 @@ def main():
 	lc_enabled = args.lc_channels is not None
 	
 	# this is a placeholder for the final output
-	samples = tf.placeholder(tf.float16)
+	samples = tf.placeholder(tf.float32)
 
 	# this placeholder is for
 	if lc_enabled:
-		lc_batch = tf.placeholder(tf.float16)
+		lc_batch = tf.placeholder(tf.float32)
 	
 	# if LC is enabled, set up for LC conditioned generation
 	# TODO: figure out if this will work without starting the queue runners :/
 	if lc_enabled:
 		midifile = midi.read_midifile(args.lc_filepath)
-		mapper = MidiMapper(sample_rate = args.sample_rate, lc_channels = args.lc_channels, sess = sess)
+		mapper = MidiMapper(sample_rate = args.sample_rate, lc_channels = args.lc_channels)
 		mapper.set_midi(midifile)
 		lc_embeddings = mapper.upsample()
 
