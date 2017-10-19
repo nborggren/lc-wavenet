@@ -226,7 +226,7 @@ def main():
 
 	# this placeholder is for
 	if lc_enabled:
-		lc_batch = tf.placeholder(tf.int32)
+		lc_batch = tf.placeholder(tf.float32)
 	
 	# if LC is enabled, set up for LC conditioned generation
 	# TODO: figure out if this will work without starting the queue runners :/
