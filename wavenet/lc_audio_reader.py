@@ -453,7 +453,7 @@ class MidiMapper():
 		current_time = self.sample_to_microseconds(start_sample)
 
 		if end_sample is None:
-			end_sample = float('inf')
+			end_time = float('inf')
 		# print("Ending time for upsample is {}".format(end_time))
 
 		counter = self.first_note_index
