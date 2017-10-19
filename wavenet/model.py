@@ -440,11 +440,11 @@ class WaveNetModel(object):
 		return output
 
 	def _generator_causal_layer_lc(self, input_batch, state_batch):
-	with tf.name_scope('causal_layer'):
-		weights_filter = self.variables['causal_layer']['filter_lc']
-		output = self._generator_conv(
-			input_batch, state_batch, weights_filter)
-	return output
+		with tf.name_scope('causal_layer'):
+			weights_filter = self.variables['causal_layer']['filter_lc']
+			output = self._generator_conv(
+				input_batch, state_batch, weights_filter)
+		return output
 
 	def _generator_dilation_layer(self,
 								  input_batch,
