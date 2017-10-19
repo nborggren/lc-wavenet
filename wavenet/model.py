@@ -584,7 +584,7 @@ class WaveNetModel(object):
 		if lc_batch is not None:
 			q_lc = tf.FIFOQueue(
 				1,
-				dtpyes = tf.float32,
+				dtypes = tf.float32,
 				shapes = (1, self.batch_size, self.lc_channels))
 
 			init_lc = q_lc.enqueue_many(
