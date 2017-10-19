@@ -113,7 +113,7 @@ def get_args():
 	    default = None,
 	    help = "Path to the file to be used for local condition based generation. Default: None. Expecting: string.")
 
-	parse.add_argument('--sample-rate',
+	parser.add_argument('--sample-rate',
 		type = int,
 		default = 16000,
 		help = "Default sample rate of the wav file. Used for properly upsampling the LC file. Default: 16000. Expecting: int.")
