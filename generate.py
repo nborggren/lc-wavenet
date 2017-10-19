@@ -11,7 +11,7 @@ import numpy as np
 import tensorflow as tf
 import midi
 
-from wavenet import WaveNetModel, mu_law_decode, mu_law_encode, audio_reader
+from wavenet import WaveNetModel, MidiMapper, mu_law_decode, mu_law_encode, audio_reader
 
 TEMPERATURE = 1.0
 LOGDIR = './logdir'
