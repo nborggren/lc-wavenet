@@ -434,7 +434,7 @@ class WaveNetModel(object):
 
 	def _generator_causal_layer(self, input_batch, state_batch):
 		with tf.name_scope('causal_layer'):
-			weights_filter = self.variables['causal_layer']['filter']
+			weights_filter = self.variables['causal_layer']['filter_audio']
 			output = self._generator_conv(
 				input_batch, state_batch, weights_filter)
 		return output
