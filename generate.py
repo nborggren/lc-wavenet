@@ -222,11 +222,11 @@ def main():
 	lc_enabled = args.lc_channels is not None
 	
 	# this is a placeholder for the final output
-	samples = tf.placeholder(tf.float32)
+	samples = tf.placeholder(tf.int32)
 
 	# this placeholder is for
 	if lc_enabled:
-		lc_batch = tf.placeholder(tf.float32)
+		lc_batch = tf.placeholder(tf.int32)
 	
 	# if LC is enabled, set up for LC conditioned generation
 	# TODO: figure out if this will work without starting the queue runners :/
