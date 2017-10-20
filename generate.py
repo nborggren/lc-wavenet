@@ -232,7 +232,7 @@ def main():
 	# TODO: figure out if this will work without starting the queue runners :/
 	if lc_enabled:
 		midifile = midi.read_midifile(args.lc_filepath)
-		mapper = MidiMapper(sample_rate = args.sample_rate, lc_channels = args.lc_channels)
+		mapper = MidiMapper(sample_rate = args.sample_rate, lc_channels = args.initial_lc_channels)
 		mapper.set_midi(midifile)
 		lc_embeddings = mapper.upsample()
 
