@@ -632,7 +632,7 @@ class WaveNetModel(object):
 
 						init_lc = q_lc.enqueue_many(
 							tf.zeros((dilation, self.batch_size, self.lc_channels)))
-:
+
 						current_lc_state = q_lc.dequeue()
 						push_lc = q_lc.enqueue([lc_current_layer])
 						init_ops.append(init_lc)
