@@ -235,12 +235,12 @@ class WaveNetModel(object):
 						if self.lc_channels is not None:
 							current['lc_gateweights'] = create_variable(
 								'lc_gate',
-								 [1,
+								 [self.filter_width,
 								  self.lc_channels,
 								  self.dilation_channels])
 							current['lc_filtweights'] = create_variable(
 								'lc_filter', 
-								[1,
+								[self.filter_width,
 								 self.lc_channels,
 								 self.dilation_channels])
 
