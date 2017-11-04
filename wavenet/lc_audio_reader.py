@@ -276,17 +276,18 @@ class LCAudioReader():
 								lc_encode = np.concatenate((first_pad, lc_encode), axis = 0)
 
 							# now pad the embeddings to match size
-							delta_len = len(audio) - len(lc_encode)
+							delta_len = len(piece) - len(lc_encode)
 							if (delta_len > 0):
 								lc_encode_postpad = np.zeros(shape = (delta_len, self.lc_channels), dtype = np.float32)
 								lc_encode = np.concatenate((lc_encode, lc_encode_postpad), axis = 0)
 							elif (delta_len < 0):
-								lc_encode = lc_encode[0:len(lc_encode) - delta_len - 1:1]
-
+								lc_encode = lc_encode[0:len(lc_encode) + delta_len - 1:1]
+							
 							self.sess.run(self.enq_lc, feed_dict = {self.lc_placeholder : lc_encode})
 							# after queueing, shift audio frame to the next one
 							previous_end = new_end
 							new_end = new_end + self.receptive_field + self.sample_size
+							
 						
 						first_loop = False
 				# DONT CHOP UP AUDIO
@@ -314,8 +315,8 @@ class LCAudioReader():
 							lc_encode_postpad = np.zeros(shape = (delta_len, self.lc_channels), dtype = np.float32)  
 							lc_encode = np.concatenate((lc_encode, lc_encode_postpad), axis = 0)
 						elif (delta_len < 0):
-							lc_encode = lc_encode[0:len(lc_encode) - delta_len - 1:1]
-
+							lc_encode = lc_encode[0:len(lc_encode) + delta_len - 1:1]
+						
 						self.sess.run(self.enq_lc, feed_dict = {self.lc_placeholder : lc_encode})
 
 

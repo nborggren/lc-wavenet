@@ -16,12 +16,12 @@ import time
 import numpy as np
 
 # Install memory_util
-from urllib2 import urlopen
-response = urlopen("https://raw.githubusercontent.com/yaroslavvb/memory_util/master/memory_util.py")
-open("memory_util.py", "wb").write(response.read())
-
-import memory_util
-memory_util.vlog(1)
+#from urllib2 import urlopen
+#response = urlopen("https://raw.githubusercontent.com/yaroslavvb/memory_util/master/memory_util.py")
+#open("memory_util.py", "wb").write(response.read())
+#
+#import memory_util
+#memory_util.vlog(1)
 # End install
 
 import tensorflow as tf
@@ -339,6 +339,7 @@ def main():
 			lc_encoded_batch = reader.dq_lc(args.batch_size) 
 		else:
 			lc_encoded_batch = None
+		
 
 	# Create network.
 	net = WaveNetModel(
@@ -385,9 +386,9 @@ def main():
 
 	# set up session initial state
 	init = tf.global_variables_initializer()
-	with memory_util.capture_stderr() as stderr:
-		sess.run(init)
-	memory_util.print_memory_timeline(stderr, ignore_less_than_bytes=1000)
+#	with memory_util.capture_stderr() as stderr:
+	sess.run(init)
+#	memory_util.print_memory_timeline(stderr, ignore_less_than_bytes=1000)
 
 	# saver for storing checkpoints of the model.
 	saver = tf.train.Saver(var_list = tf.trainable_variables(), max_to_keep = args.max_checkpoints)

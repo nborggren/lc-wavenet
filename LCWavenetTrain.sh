@@ -34,12 +34,12 @@ module load tensorflow/r1.2
 
 # EXECUTION LINE
 python /projectnb/textconv/siaa/tensorflow-wavenet/train.py \
---data-dir=/projectnb/textconv/LCWaveNet/Data/MusicNet_Cello \
+--data-dir=/projectnb/textconv/WaveNet/Rachel/LCWaveNet/Data/MusicNet_Cello \
 --logdir=/projectnb/textconv/siaa/MNetModel/SixStacks \
 --wavenet-params=/projectnb/textconv/siaa/tensorflow-wavenet/lc_wavenet_params.json \
---learning-rate=0.001 
+--learning-rate=0.001 \
 --initial-lc-channels=128 \
---lc-channels=32 \
+--lc-channels=16 \
 --lc-fileformat=*.mid
 
 

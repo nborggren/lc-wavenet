@@ -361,11 +361,14 @@ class WaveNetModel(object):
 		# y(t), convolved with lc_filter, will change at every step.
 		
 		if lc_batch is not None:
+			
+			
 			weights_lc_filter = variables['lc_filtweights']
 			conv_filter_lc = causal_conv(lc_batch, weights_lc_filter, 1)
 													 
 			weights_lc_gate = variables['lc_gateweights']
 			conv_gate_lc = causal_conv(lc_batch, weights_lc_gate, 1)
+			
 
 			# This is Cutting the starting of the lc_batch to match the length of the input_batch
 			# Shortening the lc_batch
@@ -509,7 +512,8 @@ class WaveNetModel(object):
 		'''Construct the WaveNet network.'''
 		outputs = []
 		
-
+		input_batch = input_batch + lc_batch
+		
 		current_layer = self._create_causal_layer(input_batch)
 		if lc_batch is not None:
 			lc_batch_causaled = self._create_causal_layer_lc(lc_batch)
@@ -823,6 +827,7 @@ class WaveNetModel(object):
 				lc_encoded_batch = tf.slice(lc_encoded_batch, [0, 0, 0],
 											[-1, lc_batch_width, -1])
 
+						
 			raw_output = self._create_network(network_input, gc_embedding, lc_encoded_batch)
 
 			with tf.name_scope('loss'):
