@@ -302,7 +302,7 @@ class WaveNetModel(object):
 							   dilation,
 							   gc_batch,
 							   output_width, 
-							   lc_batch):
+							   lc_batch = None):
 		# Need to determine how to input the lc_batch.
 		'''Creates a single causal dilated convolution layer.
 
@@ -512,11 +512,14 @@ class WaveNetModel(object):
 
 		current_layer = self._create_causal_layer(input_batch)
 		if lc_batch is not None:
-			lc_batch_causaled = self._create_causal_layer_lc(lc_batch)  # ALi & Brian
+			lc_batch_causaled = self._create_causal_layer_lc(lc_batch)
+		else:
+			lc_batch_causaled = None
 
 		output_width = tf.shape(input_batch)[1] - self.receptive_field + 1
 
-		# Add all defined dilation layers.
+		# Add all defined dilation layers.if lc_batch is not None:
+		
 		with tf.name_scope('dilated_stack'):
 			for layer_index, dilation in enumerate(self.dilations):
 				with tf.name_scope('layer{}'.format(layer_index)):
@@ -617,8 +620,6 @@ class WaveNetModel(object):
 
 
 					gc_batch = None
-					lc_input_batch_casualed = None
-					lc_state_batch_casualed = None
 
 					# if lc is enabled, set up the queues for lc
 					# TODO: this can be made more efficent as the lc convolution does not change as it goes through the layers
