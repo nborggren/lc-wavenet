@@ -422,7 +422,7 @@ class MidiMapper():
 		and then upsamples the notes according to the wav sampling rate, makes embeddings and adds them  
 		to the tf queue''' 
 		upsample_time = self.tick_delta_to_microseconds(delta_ticks)
-		
+
 		# TODO: figure out if batching all  inserts from the loops into a giant block
 		# of inserts will be more efficient if used with enqueue_many
 		num_embeddings = upsample_time * self.sample_rate / 1000000
@@ -431,10 +431,10 @@ class MidiMapper():
 			# an empty embedding which is the intialzation for each elemnt of the mapper queue
 			# we cannot use a single empty variable and assign 1s to it as all array variables are handles and not literals
 			embedding = np.zeros(shape = (self.lc_channels), dtype = np.float32)
-			
+
 			# single line for loop that encodes the embedding according the state vector of the notes
-			for j in range(len(note_state) - 1):
-				embedding[note_state[j]] = 1
+			for j in range(len(note_state)):
+				embedding[note_state[j - 1]] = 1
 			
 			# embeddign made, now enqueue
 			self.mapper_lc_q.put(embedding)
@@ -454,6 +454,8 @@ class MidiMapper():
 
 		if end_sample is None:
 			end_time = float('inf')
+		else:
+			end_time = self.sample_to_microseconds(end_sample)
 		# print("Ending time for upsample is {}".format(end_time))
 
 		counter = self.first_note_index

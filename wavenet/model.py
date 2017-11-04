@@ -641,7 +641,7 @@ class WaveNetModel(object):
 					# now perform the convlution at the layer
 					output, current_layer = self._generator_dilation_layer(
 						current_layer, current_state, layer_index, dilation,
-						gc_batch, lc_batch, current_lc_state)
+						gc_batch, lc_current_layer, current_lc_state)
 
 					outputs.append(output)
 		self.init_ops = init_ops

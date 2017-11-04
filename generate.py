@@ -235,11 +235,15 @@ def main():
 		mapper = MidiMapper(sample_rate = args.sample_rate, lc_channels = args.initial_lc_channels)
 		mapper.set_midi(midifile)
 		lc_embeddings = mapper.upsample()
+		print(lc_embeddings[8000])
+		print("Shape of embeddings is {}".format(np.shape(lc_embeddings)))
 
 	# determine number of samples to be generated
 	# if LC enabled, then it depends on the temporal length of the LC file
-	sample_count = get_generation_length_from_midi(args.sample_rate, args.lc_filepath) \
-		if lc_enabled else args.samples
+	# sample_count, microsec = get_generation_length_from_midi(args.sample_rate, args.lc_filepath) \
+	# if lc_enabled else args.samples
+
+	sample_count = args.samples
 
 	# TODO: figure out how to give this function each LC embedding incrementally for each sample generation
 	if args.fast_generation and lc_enabled:
@@ -302,7 +306,8 @@ def main():
 	last_sample_timestamp = datetime.now()
 
 	# for each sample to be generated do the ops in the loop
-	for step in range(sample_count):
+	print(sample_count)
+	for step in range(int(sample_count)):
 		# this is where it should be changed to account for LC?
 		if args.fast_generation:
 			outputs = [next_sample]
@@ -325,7 +330,7 @@ def main():
 				outputs,
 				feed_dict = {
 					samples : window,
-					lc_batch : lc_embeddings[step]
+					lc_batch : np.reshape(lc_embeddings[step], (1, args.initial_lc_channels))
 				})[0]
 		else:
 			prediction = sess.run(
@@ -358,7 +363,7 @@ def main():
 		current_sample_timestamp = datetime.now()
 		time_since_print = current_sample_timestamp - last_sample_timestamp
 		if time_since_print.total_seconds() > 1.:
-			print('Sample {:3<d}/{:3<d}'.format(step + 1, sample_count),
+			print('Sample {:3<f}/{:3<f}'.format(step + 1, sample_count),
 				  end = '\r')
 			last_sample_timestamp = current_sample_timestamp
 
