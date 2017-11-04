@@ -512,8 +512,6 @@ class WaveNetModel(object):
 		'''Construct the WaveNet network.'''
 		outputs = []
 		
-		input_batch = input_batch + lc_batch
-		
 		current_layer = self._create_causal_layer(input_batch)
 		if lc_batch is not None:
 			lc_batch_causaled = self._create_causal_layer_lc(lc_batch)
