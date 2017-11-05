@@ -102,7 +102,7 @@ def clean_midi_files(audio_files, lc_files):
 def randomize_files(files):
 	for file in files:
 		file_index = random.randint(0, (len(files) - 1))
-		print("called")
+		#print("called")
 		yield files[file_index]
 
 
@@ -224,6 +224,7 @@ class LCAudioReader():
 					stop = True
 					break
 
+				print(filename)
 				# TODO: If we remove this silence trimming we can use the randomised queue
 				# instead of the padding queue so that we dont have to take care of midi with silence
 				if self.silence_threshold is not None:
@@ -246,15 +247,15 @@ class LCAudioReader():
 
 				# CHOP UP AUDIO
 				if self.sample_size:
-					first_loop = True
+					#first_loop = True
 					# TODO: sample size has been disabled for now. adapt to support in the future
 					if self.lc_enabled:
 						# ADAPT:
 						# setup parametrs for MidiMapper
 						previous_end = 0
-						new_end = self.sample_size - 1
+						new_end = self.sample_size + self.receptive_field - 1
 						mapper.set_midi(lc_timeseries)
-						np.zeros(shape = (len_audio_postpad - len_audio_prepad, self.lc_channels), dtype = np.float32)
+						#np.zeros(shape = (len_audio_postpad - len_audio_prepad, self.lc_channels), dtype = np.float32)
 						
 					# TODO: understand the reason for this piece voodoo from the original reader
 					while len(audio) > self.receptive_field:
@@ -268,12 +269,13 @@ class LCAudioReader():
 						# add LC mapping to queue if enabled
 						if self.lc_enabled:
 							# TODO: sanity check the following four lines
-							mapper.set_sample_range(start_sample = previous_end, end_sample = new_end)
+							#mapper.set_sample_range(start_sample = previous_end - self.receptive_field, end_sample = new_end)
 							mapper.set_midi(lc_timeseries)
-							lc_encode = mapper.upsample(start_sample = previous_end, end_sample = new_end)
-							if (first_loop):
-								first_pad = np.zeros(shape = (len_audio_postpad - len_audio_prepad, self.lc_channels), dtype = np.float32)
-								lc_encode = np.concatenate((first_pad, lc_encode), axis = 0)
+							lc_encode = mapper.upsample(start_sample = previous_end - self.receptive_field, end_sample = new_end)
+							#if (first_loop):
+							#	first_pad = np.zeros(shape = (len_audio_postpad - len_audio_prepad, self.lc_channels), dtype = np.float32)
+							#	lc_encode = np.concatenate((first_pad, lc_encode), axis = 0)
+							#	first_loop = False
 
 							# now pad the embeddings to match size
 							delta_len = len(piece) - len(lc_encode)
@@ -281,15 +283,20 @@ class LCAudioReader():
 								lc_encode_postpad = np.zeros(shape = (delta_len, self.lc_channels), dtype = np.float32)
 								lc_encode = np.concatenate((lc_encode, lc_encode_postpad), axis = 0)
 							elif (delta_len < 0):
-								lc_encode = lc_encode[0:len(lc_encode) + delta_len - 1:1]
+								lc_encode = lc_encode[0:len(lc_encode) + delta_len :1]
 							
 							self.sess.run(self.enq_lc, feed_dict = {self.lc_placeholder : lc_encode})
 							# after queueing, shift audio frame to the next one
 							previous_end = new_end
-							new_end = new_end + self.receptive_field + self.sample_size
+							new_end = new_end + self.sample_size
+							
+							print(delta_len)
+#							lc_encode = lc_encode + piece
+							
+						audio = audio[self.sample_size:,:]
 							
 						
-						first_loop = False
+						
 				# DONT CHOP UP AUDIO
 				else:
 					# otherwise feed the whole audio sample in its entireity
@@ -316,6 +323,7 @@ class LCAudioReader():
 							lc_encode = np.concatenate((lc_encode, lc_encode_postpad), axis = 0)
 						elif (delta_len < 0):
 							lc_encode = lc_encode[0:len(lc_encode) + delta_len - 1:1]
+						
 						
 						self.sess.run(self.enq_lc, feed_dict = {self.lc_placeholder : lc_encode})
 
@@ -351,8 +359,8 @@ class MidiMapper():
 		self.mapper_lc_q = queue.Queue()
 
 	def set_sample_range(self, start_sample, end_sample):
-		'''Allow the sample range to change at runtime so new MidiMappers
-			do not have to be instantiated for the same midi file '''
+		'''Allow the sample range to change at runtime so new MidiMappers'''
+		
 		self.start_sample = start_sample
 		self.end_sample = end_sample
 
@@ -393,8 +401,8 @@ class MidiMapper():
 
 		# this is getting the index of first note event in the midi to ignore all other BS
 		# and also the tempo hehe
-		while event_name is not midi.NoteOnEvent.name and event_name is not midi.NoteOffEvent.name:
-			event_name = track[first_note_index].name
+		event_name = track[first_note_index].name
+		while event_name is not midi.NoteOnEvent.name:
 			if event_name is midi.SetTempoEvent.name:
 				# indicating a tempo is set before the first note as initial tempo
 				# get the 24-bit binary as a string
@@ -406,6 +414,7 @@ class MidiMapper():
 				tempo = int(tempo_binary, 2)
 				
 			first_note_index += 1
+			event_name = track[first_note_index].name
 
  		# this the tempo for the first note of the midi
 		self.tempo = tempo if tempo is not None else 500000
@@ -451,7 +460,7 @@ class MidiMapper():
 		midi_track = self.midi[0]
 		
 		# First get the start and end times of the midi section to be extracted and upsampled
-		current_time = self.sample_to_microseconds(start_sample)
+		current_time = self.sample_to_microseconds(np.maximum(0,start_sample))
 
 		if end_sample is None:
 			end_time = float('inf')
@@ -532,8 +541,8 @@ class MidiMapper():
 		self.first_note_index = counter
 		
 		# current_time = end_time, but the MIDI isn't at the end of the track yet
-		if midi_track[counter].name is not "End of Track":
-			print("The given MIDI file is longer than the matching .wav file. Please check that the MIDI and .wav line up correctly.")
+		#if midi_track[counter].name is not "End of Track":
+		#	print("The given MIDI file is longer than the matching .wav file. Please check that the MIDI and .wav line up correctly.")
 			# then continue like it isn't our fault
 
 	
@@ -549,4 +558,8 @@ class MidiMapper():
 		# this is a colum vector of row vectors
 		# colum is num_embeddings rows tall
 		# each row in this column self.lc_channels float32s wide
+		if start_sample < 0:
+			padding = np.zeros(shape = (np.abs(start_sample), self.lc_channels), dtype = np.float32)
+			embedding_vector = np.concatenate((padding, embedding_vector), axis = 0)
+		 
 		return embedding_vector

@@ -34,7 +34,7 @@ module load tensorflow/r1.2
 
 # EXECUTION LINE
 python /projectnb/textconv/siaa/tensorflow-wavenet/train.py \
---data-dir=/projectnb/textconv/WaveNet/Rachel/LCWaveNet/Data/MusicNet_Cello \
+--data-dir=/projectnb/textconv/WaveNet/Data/MusicNet_Cello \
 --logdir=/projectnb/textconv/siaa/MNetModel/SixStacks \
 --wavenet-params=/projectnb/textconv/siaa/tensorflow-wavenet/lc_wavenet_params.json \
 --learning-rate=0.001 \

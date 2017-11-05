@@ -372,7 +372,7 @@ class WaveNetModel(object):
 
 			# This is Cutting the starting of the lc_batch to match the length of the input_batch
 			# Shortening the lc_batch
-			lc_cut = tf.shape(conv_filter_lc)[1] - tf.shape(conv_filter)[1]
+			lc_cut = tf.shape(conv_filter_lc )[1] - tf.shape(conv_filter)[1]
 			conv_filter_lc = tf.slice(conv_filter_lc, [0, lc_cut, 0], [-1, -1, -1])
 			conv_gate_lc = tf.slice(conv_gate_lc, [0, lc_cut, 0], [-1, -1, -1])  
 												 
@@ -509,9 +509,12 @@ class WaveNetModel(object):
 		return skip_contribution, input_batch + transformed
 
 	def _create_network(self, input_batch, gc_batch, lc_batch):
+		
+#		input_batch = input_batch + lc_batch
 		'''Construct the WaveNet network.'''
 		outputs = []
 		
+#		input_batch = input_batch + lc_batch
 		current_layer = self._create_causal_layer(input_batch)
 		if lc_batch is not None:
 			lc_batch_causaled = self._create_causal_layer_lc(lc_batch)
