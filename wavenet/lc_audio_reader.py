@@ -258,6 +258,8 @@ class LCAudioReader():
 						#np.zeros(shape = (len_audio_postpad - len_audio_prepad, self.lc_channels), dtype = np.float32)
 						
 					# TODO: understand the reason for this piece voodoo from the original reader
+						lc_embeddings = mapper.upsample(start_sample = - self.receptive_field)
+
 					while len(audio) > self.receptive_field:
 						piece = audio[:(self.receptive_field + self.sample_size), :]
 						self.sess.run(self.enq_audio, feed_dict = {self.audio_placeholder : piece})
@@ -269,31 +271,31 @@ class LCAudioReader():
 						# add LC mapping to queue if enabled
 						if self.lc_enabled:
 							# TODO: sanity check the following four lines
-							#mapper.set_sample_range(start_sample = previous_end - self.receptive_field, end_sample = new_end)
-							mapper.set_midi(lc_timeseries)
-							lc_encode = mapper.upsample(start_sample = previous_end - self.receptive_field, end_sample = new_end)
-							#if (first_loop):
+							# mapper.set_sample_range(start_sample = previous_end - self.receptive_field, end_sample = new_end)
+							# lc_encode = mapper.upsample(start_sample = previous_end - self.receptive_field, end_sample = new_end)
+							# if (first_loop):
 							#	first_pad = np.zeros(shape = (len_audio_postpad - len_audio_prepad, self.lc_channels), dtype = np.float32)
 							#	lc_encode = np.concatenate((first_pad, lc_encode), axis = 0)
 							#	first_loop = False
+							lc_embeddings_chunk = lc_embeddings[:(self.receptive_field + self.sample_size), :]
 
 							# now pad the embeddings to match size
-							delta_len = len(piece) - len(lc_encode)
+							delta_len = len(piece) - len(lc_embeddings_chunk)
 							if (delta_len > 0):
 								lc_encode_postpad = np.zeros(shape = (delta_len, self.lc_channels), dtype = np.float32)
-								lc_encode = np.concatenate((lc_encode, lc_encode_postpad), axis = 0)
+								lc_embeddings_chunk = np.concatenate((lc_embeddings_chunk, lc_encode_postpad), axis = 0)
 							elif (delta_len < 0):
-								lc_encode = lc_encode[0:len(lc_encode) + delta_len :1]
+								lc_embeddings_chunk = lc_embeddings_chunk[0:len(lc_embeddings_chunk) + delta_len :1]
 							
-							self.sess.run(self.enq_lc, feed_dict = {self.lc_placeholder : lc_encode})
+							self.sess.run(self.enq_lc, feed_dict = {self.lc_placeholder : lc_embeddings_chunk})
 							# after queueing, shift audio frame to the next one
 							previous_end = new_end
 							new_end = new_end + self.sample_size
 							
 							print(delta_len)
-#							lc_encode = lc_encode + piece
 							
-						audio = audio[self.sample_size:,:]
+						audio = audio[self.sample_size:, :]
+						lc_embeddings = lc_embeddings[self.sample_size:, :]
 							
 						
 						
