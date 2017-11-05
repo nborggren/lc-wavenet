@@ -259,6 +259,7 @@ class LCAudioReader():
 						
 					# TODO: understand the reason for this piece voodoo from the original reader
 						lc_embeddings = mapper.upsample(start_sample = - self.receptive_field)
+						print(len(lc_embeddings) - len(audio))
 
 					while len(audio) > self.receptive_field:
 						piece = audio[:(self.receptive_field + self.sample_size), :]
@@ -289,7 +290,7 @@ class LCAudioReader():
 							
 							self.sess.run(self.enq_lc, feed_dict = {self.lc_placeholder : lc_embeddings_chunk})
 							# after queueing, shift audio frame to the next one
-							previous_end = new_end
+#							previous_end = new_end
 							new_end = new_end + self.sample_size
 							
 							print(delta_len)
