@@ -225,6 +225,32 @@ class LCAudioReader():
 					break
 
 				print(filename)
+				print(len(audio))
+				# Make LC embeddings from .dat file
+				lc_name = os.path.splitext(filename)[0] + ".dat"
+
+				# build array of note ons
+				with open(lc_name) as f:
+					lc_array = []
+					for line in f:
+						lc_array.append([int(x) for x in line.split()])
+
+				# LC embeddings should be the same size as the audio by 128
+				lc_embeddings = np.zeros(shape = (len(audio), self.lc_channels), dtype = int)
+
+				for row in lc_array:
+					start_sample = row[0]
+					end_sample = row[1]
+
+					for i in range(start_sample, end_sample):
+						lc_embeddings[i,row[2]] = 1
+
+
+				print(lc_embeddings)
+
+				# prepad lc_embeddings with zeros, like audio does
+				lc_embeddings = np.concatenate((np.zeros(shape = (self.receptive_field, self.lc_channels)), lc_embeddings), axis = 0)
+
 				# TODO: If we remove this silence trimming we can use the randomised queue
 				# instead of the padding queue so that we dont have to take care of midi with silence
 				if self.silence_threshold is not None:
@@ -245,6 +271,8 @@ class LCAudioReader():
 				audio = np.pad(audio, [[self.receptive_field, 0], [0, 0]], 'constant')
 				len_audio_postpad = len(audio)
 
+				print(len(audio))
+
 				# CHOP UP AUDIO
 				if self.sample_size:
 					#first_loop = True
@@ -258,7 +286,9 @@ class LCAudioReader():
 						#np.zeros(shape = (len_audio_postpad - len_audio_prepad, self.lc_channels), dtype = np.float32)
 						
 					# TODO: understand the reason for this piece voodoo from the original reader
-						lc_embeddings = mapper.upsample(start_sample = - self.receptive_field)
+						#lc_embeddings = mapper.upsample(start_sample = - self.receptive_field)
+						#REPLACE LC_EMBEDDINGS
+						print("Difference between LC embeddings and audio")
 						print(len(lc_embeddings) - len(audio))
 
 					while len(audio) > self.receptive_field:
