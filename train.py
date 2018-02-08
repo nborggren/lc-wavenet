@@ -1,10 +1,3 @@
-"""Training script for the WaveNet network on the VCTK corpus.
-
-This script trains a network with the WaveNet using data from the VCTK corpus,
-which can be freely downloaded at the following site (~10 GB):
-http://homepages.inf.ed.ac.uk/jyamagis/page3/page58/page58.html
-"""
-
 from __future__ import print_function
 
 import argparse
@@ -386,9 +379,9 @@ def main():
 
 	# set up session initial state
 	init = tf.global_variables_initializer()
-#	with memory_util.capture_stderr() as stderr:
+	# with memory_util.capture_stderr() as stderr:
 	sess.run(init)
-#	memory_util.print_memory_timeline(stderr, ignore_less_than_bytes=1000)
+	# memory_util.print_memory_timeline(stderr, ignore_less_than_bytes=1000)
 
 	# saver for storing checkpoints of the model.
 	saver = tf.train.Saver(var_list = tf.trainable_variables(), max_to_keep = args.max_checkpoints)
@@ -420,24 +413,42 @@ def main():
 				# Slow run that stores extra information for debugging.
 				print('Storing metadata')
 				run_options = tf.RunOptions(
-					trace_level = tf.RunOptions.FULL_TRACE)
+					trace_level = tf.RunOptions.FULL_TRACE
+				)
 
 				summary, loss_value, _ = sess.run(
-					[summaries, loss, optim],
+					[
+						summaries,
+						loss,
+						optim
+					],
 					options = run_options,
-					run_metadata = run_metadata)
+					run_metadata = run_metadata
+				)
 
-				writer.add_summary(summary, step)
-				writer.add_run_metadata(run_metadata,
-										'step_{:04d}'.format(step))
+				writer.add_summary(
+					summary,
+					step
+				)
+				writer.add_run_metadata(
+					run_metadata,
+					'step_{:04d}'.format(step)
+				)
+
 				tl = timeline.Timeline(run_metadata.step_stats)
 				timeline_path = os.path.join(logdir, 'timeline.trace')
 				with open(timeline_path, 'w') as f:
 					f.write(tl.generate_chrome_trace_format(show_memory = True))
 			else:
-				summary, loss_value, _ = sess.run([summaries, loss, optim])
-
-				writer.add_summary(summary, step)
+				summary, loss_value, _ = sess.run([
+					summaries,
+					loss,
+					optim
+				])
+				writer.add_summary(
+					summary,
+					step
+				)
 
 			duration = time.time() - start_time
 			print('step {:d} - loss = {:.3f}, ({:.3f} sec/step)'

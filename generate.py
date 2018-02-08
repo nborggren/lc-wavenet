@@ -262,7 +262,8 @@ def main():
 	# gather all vars to restore
 	variables_to_restore = {
 		var.name[:-2]: var for var in tf.global_variables()
-		if not ('state_buffer' in var.name or 'pointer' in var.name)}
+		if not ('state_buffer' in var.name or 'pointer' in var.name)
+	}
 	saver = tf.train.Saver(variables_to_restore)
 	
 	# restore all vars
@@ -275,9 +276,10 @@ def main():
 	if args.wav_seed:
 		# should not need this for LC
 		seed = create_seed(args.wav_seed,
-						   wavenet_params['sample_rate'],
-						   quantization_channels,
-						   net.receptive_field)
+						wavenet_params['sample_rate'],
+						quantization_channels,
+						net.receptive_field
+		)
 		waveform = sess.run(seed).tolist()
 	else:
 		# Silence with a single random sample at the end.
