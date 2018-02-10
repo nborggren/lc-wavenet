@@ -439,14 +439,18 @@ class MidiMapper():
 		# of inserts will be more efficient if used with enqueue_many
 		num_embeddings = upsample_time * self.sample_rate / 1000000
 
+		num_notes = len(note_state)
+		if (num_notes != 0):
+			top_note = max(note_state)
+		
 		for i in range(num_embeddings - 1):
 			# an empty embedding which is the intialzation for each elemnt of the mapper queue
 			# we cannot use a single empty variable and assign 1s to it as all array variables are handles and not literals
 			embedding = np.zeros(shape = (self.lc_channels), dtype = np.float32)
 
 			# single line for loop that encodes the embedding according the state vector of the notes
-			for j in range(len(note_state)):
-				embedding[note_state[j - 1]] = 1
+			if (num_notes > 0):
+				embeddign[top_note] = 1
 			
 			# embeddign made, now enqueue
 			self.mapper_lc_q.put(embedding)
