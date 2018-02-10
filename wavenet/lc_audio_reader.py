@@ -450,7 +450,7 @@ class MidiMapper():
 
 			# single line for loop that encodes the embedding according the state vector of the notes
 			if (num_notes > 0):
-				embeddign[top_note] = 1
+				embedding[top_note] = 1
 			
 			# embeddign made, now enqueue
 			self.mapper_lc_q.put(embedding)
