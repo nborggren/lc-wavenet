@@ -59,8 +59,7 @@ class WaveNetModel(object):
 		gc_channels = None,
 		gc_cardinality = None,
 		initial_lc_channels = None,
-		lc_channels = None
-	):
+		lc_channels = None):
 		'''Initializes the WaveNet model.
 
 		Args:
@@ -136,8 +135,7 @@ class WaveNetModel(object):
 		filter_width,
 		dilations,
 		scalar_input,
-		initial_filter_width
-	):
+		initial_filter_width):
 		# LC does not affect receptive field
 		receptive_field = (filter_width - 1) * sum(dilations) + 1
 		if scalar_input:
@@ -361,10 +359,11 @@ class WaveNetModel(object):
 
 		The layer can change the number of channels.
 		'''
-		with tf.name_scope('causal_layer'):
+		with tf.name_scope('causal_layer_lc'):
 			weights_filter = self.variables['causal_layer']['filter_lc']
 			# convolving lc_batch with 32x128x16 
 			return causal_conv(lc_batch, weights_filter, 1)
+
 
 	def _create_dilation_layer(
 		self,
@@ -509,6 +508,18 @@ class WaveNetModel(object):
 
 		return skip_contribution, input_batch + transformed
 
+
+	def _generator_causal_layer(self, input_batch, state_batch):
+		with tf.name_scope('causal_layer_audio'):
+			weights_filter = self.variables['causal_layer']['filter_audio']
+			output = self._generator_conv(
+				input_batch,
+				state_batch,
+				weights_filter
+			)
+		return output
+
+
 	def _generator_conv(self, input_batch, state_batch, weights):
 		'''Perform convolution for a single convolutional processing step.'''
 		# TODO generalize to filter_width > 2
@@ -525,27 +536,24 @@ class WaveNetModel(object):
 		return output
 
 
-	def _generator_causal_layer(self, input_batch, state_batch):
-		with tf.name_scope('causal_layer'):
-			weights_filter = self.variables['causal_layer']['filter_audio']
-			output = self._generator_conv(
-				input_batch,
-				state_batch,
-				weights_filter
-			)
-		return output
-
-
-	def _generator_causal_layer_lc(self, input_batch, state_batch):
-		with tf.name_scope('causal_layer'):
+	def _generator_causal_layer_lc(self, input_lc_batch):
+		with tf.name_scope('causal_layer_lc'):
 			weights_filter = self.variables['causal_layer']['filter_lc']
-			output = self._generator_conv(
-				input_batch,
-				state_batch,
+			output = self._generator_conv_lc(
+				input_lc_batch,
 				weights_filter
 			)
 		return output
 
+
+	def _generator_conv_lc(self, input_batch, weights):
+		'''Perform convolution for LC samples that have no look-back.'''
+		curr_weights = weights[0, :, :]
+		output = tf.matmul(
+					input_batch,
+					curr_weights
+				)
+		return output
 
 	def _generator_dilation_layer(
 		self,
@@ -554,9 +562,8 @@ class WaveNetModel(object):
 		layer_index,
 		dilation,
 		gc_batch = None, 
-		lc_input_batch = None,
-		lc_state_batch = None):
-	
+		lc_input_batch = None):
+		
 		variables = self.variables['dilated_stack'][layer_index]
 
 		weights_filter = variables['filter']
@@ -589,20 +596,18 @@ class WaveNetModel(object):
 
 		# LOCAL CONDITION
 		# Creating filter and gates to perform dilated conv using LC params.
-		if lc_state_batch is not None:
+		if lc_input_batch is not None:
 			# LC_batch should be treated as like the input_batch and state_batch 
 
 			weights_lc_filter = variables['lc_filtweights']
 			weights_lc_gate = variables['lc_gateweights']
 
-			output_filter += self._generator_conv(
+			output_filter += self._generator_conv_lc(
 				lc_input_batch,
-				lc_state_batch,
 				weights_lc_filter
 			)
-			output_gate += self._generator_conv(
+			output_gate += self._generator_conv_lc(
 				lc_input_batch,
-				lc_state_batch,
 				weights_lc_gate
 			)
 
@@ -728,34 +733,12 @@ class WaveNetModel(object):
 		)
 
 		if lc_batch is not None:
-			q_lc = tf.FIFOQueue(
-				1,
-				dtypes = tf.float32,
-				shapes = (self.batch_size, self.initial_lc_channels)
-			)
+			lc_current_layer = self._generator_causal_layer_lc(lc_batch)
 
-			init_lc = q_lc.enqueue_many(
-				tf.zeros(
-					(
-						1,
-						self.batch_size,
-						self.initial_lc_channels
-					)
-				)
-			)
-
-			current_lc_state = q_lc.dequeue()
-			push_lc = q_lc.enqueue([lc_batch])
-			init_ops.append(init_lc)
-			push_ops.append(push_lc)
-
-			lc_current_layer = self._generator_causal_layer_lc(lc_batch, current_lc_state)
-
-		# Add all defined dilation layers.
+		# Add all defined dilation layers
 		with tf.name_scope('dilated_stack'):
 			for layer_index, dilation in enumerate(self.dilations):
 				with tf.name_scope('layer{}'.format(layer_index)):
-
 					q_audio = tf.FIFOQueue(
 						dilation,
 						dtypes = tf.float32,
@@ -777,44 +760,15 @@ class WaveNetModel(object):
 					init_ops.append(init_audio)
 					push_ops.append(push_audio)
 
-
 					gc_batch = None
 
-					# if lc is enabled, set up the queues for lc
-					# TODO: this can be made more efficent as the lc convolution does not change as it goes through the layers
-					# ideally we would not need a queue at every layer for lc for this reason
-					# this is only a hack for now
-					if lc_batch is not None:
-						q_lc = tf.FIFOQueue(
-							dilation,
-							dtypes = tf.float32,
-							shapes = (self.batch_size, self.lc_channels)
-						)
-
-						init_lc = q_lc.enqueue_many(
-							tf.zeros(
-								(
-									dilation,
-									self.batch_size,
-									self.lc_channels
-								)
-							)
-						)
-
-						current_lc_state = q_lc.dequeue()
-						push_lc = q_lc.enqueue([lc_current_layer])
-						init_ops.append(init_lc)
-						push_ops.append(push_lc)
-
-					# now perform the convlution at the layer
 					output, current_layer = self._generator_dilation_layer(
 						current_layer,
 						current_state,
 						layer_index,
 						dilation,
 						gc_batch,
-						lc_current_layer,
-						current_lc_state
+						lc_current_layer
 					)
 
 					outputs.append(output)
@@ -957,7 +911,7 @@ class WaveNetModel(object):
 		self,
 		waveform,
 		gc_batch = None,
-		lc_embedding = None,
+		lc_batch = None,
 		name = 'wavenet'):
 		'''Computes the probability distribution of the next sample
 		incrementally, based on a single sample and all previously passed
@@ -980,7 +934,7 @@ class WaveNetModel(object):
 			raw_output = self._create_generator(
 				encoded_audio,
 				gc_embedding,
-				lc_embedding
+				lc_batch
 			)
 
 			# output
