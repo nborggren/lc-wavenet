@@ -528,8 +528,7 @@ class WaveNetModel(object):
 		output = tf.matmul(
 				state_batch,
 				past_weights
-			) +
-			tf.matmul(
+			) + tf.matmul(
 				input_batch,
 				curr_weights
 			)
