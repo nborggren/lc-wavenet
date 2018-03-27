@@ -166,6 +166,12 @@ def get_arguments():
 		default = None,
 		help = "Extension of files being used for local conditioning. Default: None. Expecting: string")
 
+
+	parser.add_argument('--unconditioned-init',
+		type = int,
+		default = 0,
+		help = "Adding the unconditioned_init input (True or False)")
+
 	parser.add_argument('--max-checkpoints',
 		type = int,
 		default = MAX_TO_KEEP,
