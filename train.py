@@ -381,10 +381,12 @@ def main():
 	init = tf.global_variables_initializer()
 	# with memory_util.capture_stderr() as stderr:
 	sess.run(init)
+	saved_vars = [v.name for v in tf.global_variables()]
+    json.dump(saved_vars, open(os.path.join(logdir,'saved_vars.txt'), 'w'))
 	# memory_util.print_memory_timeline(stderr, ignore_less_than_bytes=1000)
 
 	# saver for storing checkpoints of the model.
-	saver = tf.train.Saver(var_list = tf.trainable_variables(), max_to_keep = args.max_checkpoints)
+	saver = tf.train.Saver(max_to_keep = args.max_checkpoints)
 
 	# try loading pre-existing model
 	try:
