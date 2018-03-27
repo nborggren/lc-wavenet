@@ -155,6 +155,12 @@ def get_arguments():
 		default = None,
 		help = "Number of local conditioning channels. Default: None. Expecting: int")
 
+	# Adding the unconditioned_init input (True or False)
+	parser.add_argument('--unconditioned-init',
+		type = int,
+		default = False,
+		help = "Number of local conditioning channels. Default: None. Expecting: int")
+
 	parser.add_argument('--lc-fileformat',
 		type = str,
 		default = None,
@@ -288,6 +294,7 @@ def main():
 		lc_enabled = args.lc_channels is not None
 
 		initial_lc_channels = args.initial_lc_channels if lc_enabled else None
+		unconditioned_init = args.unconditioned_init
 		lc_channels = args.lc_channels if lc_enabled else None
 		lc_fileformat = args.lc_fileformat if lc_enabled else None
 
@@ -381,8 +388,15 @@ def main():
 	init = tf.global_variables_initializer()
 	# with memory_util.capture_stderr() as stderr:
 	sess.run(init)
-	saved_vars = [v.name for v in tf.global_variables()]
-    json.dump(saved_vars, open(os.path.join(logdir,'saved_vars.txt'), 'w'))
+
+	if lc_enabled & unconditioned_init:
+		saved_vars = json.load(open(os.path.join(logdir,'saved_vars.txt'), 'r'))
+		graph = tf.get_default_graph()
+		saved_vars = [graph.get_tensor_by_name(v) for v in saved_vars]
+		init_saver = tf.train.Saver(saved_vars)
+	elif not lc_enabled:
+		saved_vars = [v.name for v in tf.global_variables()]
+		json.dump(saved_vars, open(os.path.join(logdir,'saved_vars.txt'), 'w'))
 	# memory_util.print_memory_timeline(stderr, ignore_less_than_bytes=1000)
 
 	# saver for storing checkpoints of the model.
@@ -390,7 +404,11 @@ def main():
 
 	# try loading pre-existing model
 	try:
-		saved_global_step = load(saver, sess, restore_from)
+		if not unconditioned_init:
+			saved_global_step = load(saver, sess, restore_from)
+		else:
+			saved_global_step = load(init_saver, sess, restore_from)
+
 		if is_overwritten_training or saved_global_step is None:
 			# The first training step will be saved_global_step + 1,
 			# therefore we put -1 here for new or overwritten trainings.
