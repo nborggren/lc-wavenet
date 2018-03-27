@@ -13,7 +13,6 @@ import json
 import os
 import sys
 import time
-import numpy as np
 
 # Install memory_util
 #from urllib2 import urlopen
@@ -179,8 +178,7 @@ def save(saver, sess, logdir, step):
 	# TODO: Make this model name such that its name is $(hyper_param_string).ckpt
 	model_name = 'model.ckpt'
 	checkpoint_path = os.path.join(logdir, model_name)
-	print('Storing checkpoint to {} ... '.format(logdir), end = "")
-	sys.stdout.flush()
+	print('Storing checkpoint to {} ... '.format(logdir))
 
 	if not os.path.exists(logdir):
 		os.makedirs(logdir)
@@ -388,10 +386,14 @@ def main():
 	init = tf.global_variables_initializer()
 #	with memory_util.capture_stderr() as stderr:
 	sess.run(init)
+	saved_vars = [v.name for v in tf.global_variables()]
+	json.dump(saved_vars, open(os.path.join(logdir, 'saved_vars.txt'), 'w'))
+
 #	memory_util.print_memory_timeline(stderr, ignore_less_than_bytes=1000)
 
 	# saver for storing checkpoints of the model.
-	saver = tf.train.Saver(var_list = tf.trainable_variables(), max_to_keep = args.max_checkpoints)
+	# saver = tf.train.Saver(var_list = tf.trainable_variables(), max_to_keep = args.max_checkpoints)
+	saver = tf.train.Saver( max_to_keep = args.max_checkpoints)
 
 	# try loading pre-existing model
 	try:
@@ -410,7 +412,7 @@ def main():
 	threads = tf.train.start_queue_runners(sess = sess, coord = coord)
 	reader.start_threads()
 
-
+	
 	step = None
 	last_saved_step = saved_global_step
 	try:
@@ -454,6 +456,7 @@ def main():
 	finally:
 		if step > last_saved_step:
 			save(saver, sess, logdir, step)
+
 		coord.request_stop()
 		coord.join(threads)
 
