@@ -6,7 +6,6 @@ import json
 import os
 import sys
 import time
-import numpy as np
 
 # Install memory_util
 #from urllib2 import urlopen

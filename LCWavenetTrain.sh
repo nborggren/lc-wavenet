@@ -41,6 +41,6 @@ python /projectnb/textconv/siaa/tensorflow-wavenet/train.py \
 --initial-lc-channels=128 \
 --lc-channels=16 \
 --lc-fileformat=*.mid\
---unconditioned-init = 1 
+--unconditioned-init=1 
 
 
