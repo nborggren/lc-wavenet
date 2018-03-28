@@ -38,9 +38,9 @@ python /projectnb/textconv/siaa/tensorflow-wavenet/train.py \
 --logdir=/projectnb/textconv/siaa/MNetModel/SixStacks \
 --wavenet-params=/projectnb/textconv/siaa/tensorflow-wavenet/lc_wavenet_params.json \
 --learning-rate=0.001 \
---initial-lc-channels=128 \
---lc-channels=16 \
---lc-fileformat=*.mid\
+#--initial-lc-channels=128 \
+#--lc-channels=16 \
+#--lc-fileformat=*.mid\
 --unconditioned-init=1 
 
 
